@@ -1,7 +1,7 @@
 {
-  "name": "MLBB Draft Assistant",
+  "name": "MLBB Draft",
   "short_name": "MLBB Draft",
-  "start_url": "mlbb-roamer-v6.html",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#061025",
   "theme_color": "#66e0b3",
@@ -18,3 +18,5 @@
     }
   ]
 }
+
+
