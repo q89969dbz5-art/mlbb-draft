@@ -5,6 +5,16 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>MLBB Draft — v6 (Gold Roamer Tab Edition)</title>
+  
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('✅ Service Worker registered'))
+      .catch(err => console.log('❌ Service Worker failed', err));
+  }
+</script>
+
 <style>
   :root{
     --bg:#061025; --card:#0b1220; --muted:#9aa6bb; --accent:#66e0b3;
@@ -588,6 +598,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
