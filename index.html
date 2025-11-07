@@ -314,24 +314,24 @@ const roleSynergy = {
   support: ['tank','fighter']
 };
 
-// check if this hero has synergy with any ally roles
+// Compute synergy based on allyRoles
 let synergy = false;
-if(hr in roleSynergy){
-    synergy = allyRoles.some(r => roleSynergy[hr].includes(r));
+if (hr in roleSynergy && Array.isArray(allyRoles)) {
+  synergy = allyRoles.some(r => roleSynergy[hr].includes(r));
 }
 
+// Apply points
 if (synergy) {
-    rf = true;
-    const pts = Math.round(2 * synergyMultiplier);  // scaled by synergy multiplier
-    h._details.sums.roleFit += pts;
-    h._details.forward.push({label:'RoleFit Synergy', pts: pts});
+  rf = true;
+  const pts = Math.round(2 * synergyMultiplier);  // scaled by synergyMultiplier
+  h._details.sums.roleFit += pts;
+  h._details.forward.push({label:'RoleFit Synergy', pts});
 } else {
-    const pts = Math.round(-3 * synergyMultiplier); // scaled by synergy multiplier
-    h._details.sums.roleFit += pts;
-    h._details.forward.push({label:'RoleFit Mismatch', pts: pts});
+  const pts = Math.round(-3 * synergyMultiplier);
+  h._details.sums.roleFit += pts;
+  h._details.forward.push({label:'RoleFit Mismatch', pts});
 }
-
-                 
+        
     // sum forward to total
     h.total = h._details.sums.map + h._details.sums.compat + h._details.sums.uncompat + h._details.sums.counters + h._details.sums.marks + h._details.sums.comfort + h._details.sums.roleFit;
     h._details.total = h.total;
@@ -706,6 +706,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
