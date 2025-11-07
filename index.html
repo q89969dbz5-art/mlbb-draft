@@ -311,7 +311,6 @@ if (hr in roleSynergy) {
     h._details.forward.push({label:'RoleFit Mismatch', pts:-3});
   }
 }
-    h.roleFit = rf;
 
     // sum forward to total
     h.total = h._details.sums.map + h._details.sums.compat + h._details.sums.uncompat + h._details.sums.counters + h._details.sums.marks + h._details.sums.comfort + h._details.sums.roleFit;
@@ -523,7 +522,6 @@ function render(){
         <div class="tally-row"><div class="k">Countered by (list)</div><div class="v">${(h.countered_by||[]).join(', ') || '-'}</div></div>
         <div class="tally-row"><div class="k">Counters (list)</div><div class="v">${(h.counters||[]).join(', ') || '-'}</div></div>
         <div class="tally-row"><div class="k">Comfort</div><div class="v">+${h.comfort||0}</div></div>
-        <div class="tally-row"><div class="k">RoleFit (auto)</div><div class="v">${h.roleFit? '<span style="color:var(--good)">Yes</span>' : '<span style="color:var(--bad)">No (-3)</span>'}</div></div>
         <div class="total-hero"><div>Total Points Tallied</div><div>${h.disabled? 'REMOVED' : (h._details && h._details.total>=0 ? '<span class="score-pos">+'+h._details.total+'</span>' : '<span class="score-neg">'+(h._details? h._details.total : h.total)+'</span>')}</div></div>
       </div>
     `;
@@ -661,6 +659,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
