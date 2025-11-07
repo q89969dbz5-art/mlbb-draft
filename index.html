@@ -323,8 +323,9 @@ if (synergy) {
     const pts = Math.round(-3 * synergyMultiplier); // scaled by synergy multiplier
     h._details.sums.roleFit += pts;
     h._details.forward.push({label:'RoleFit Mismatch', pts: pts});
+  }
 }
-
+                 
     // sum forward to total
     h.total = h._details.sums.map + h._details.sums.compat + h._details.sums.uncompat + h._details.sums.counters + h._details.sums.marks + h._details.sums.comfort + h._details.sums.roleFit;
     h._details.total = h.total;
@@ -699,6 +700,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
