@@ -243,12 +243,17 @@ if (bannedList.find(b => norm(b) === norm(h.name))) {
     h.counters = h.counters || []; h.countered_by = h.countered_by || []; h.maps = h.maps || []; h.compatible = h.compatible || [];
 
     // forward marks from enemy picks matching this hero's countered_by
-    const cbLower = (h.countered_by||[]).map(x=>norm(x));
-    let marks = 0;
-    cbLower.forEach(c => { if(enemyList.find(e => norm(e) === c)) marks++; });
-    h.marks = marks;
-    if(marks >= 2) h.disabled = true;
-    if(h.disabled) return;
+const cbLower = (h.countered_by||[]).map(x=>norm(x));
+let marks = 0;
+cbLower.forEach(c => { if(enemyList.find(e => norm(e) === c)) marks++; });
+h.marks = marks;
+
+// --- Synergy multiplier if hero is countered
+let synergyMultiplier = 1;
+if(marks === 1) synergyMultiplier = 0.7;    // 1 counter → 70% points
+
+if(marks >= 2) h.disabled = true;
+if(h.disabled) return;
 
     // map synergy
     const heroMaps = (h.maps||[]).map(x=>norm(x));
@@ -260,9 +265,18 @@ if (bannedList.find(b => norm(b) === norm(h.name))) {
     let compatCount=0, uncompatCount=0;
     pc.compat.forEach(c => { if(allyList.find(a=> norm(a) === norm(c))) compatCount++; });
     pc.uncompat.forEach(c => { if(allyList.find(a=> norm(a) === norm(c))) uncompatCount++; });
-    if(compatCount){ h._details.sums.compat += compatCount; h._details.forward.push({label:'Compat', pts:compatCount}); }
-    if(uncompatCount){ h._details.sums.uncompat += uncompatCount * -2; h._details.forward.push({label:'Uncompat', pts:uncompatCount * -2}); }
-
+    if(compatCount){
+  const scaled = Math.round(compatCount * synergyMultiplier);
+  h._details.sums.compat += scaled;
+  h._details.forward.push({label:'Compat', pts:scaled});
+}
+    
+    if(uncompatCount){
+  const scaledUn = Math.round(uncompatCount * -2 * synergyMultiplier);
+  h._details.sums.uncompat += scaledUn;
+  h._details.forward.push({label:'Uncompat', pts:scaledUn});
+}
+    
     // --- Counter Weight Scaling ---
 const countersLower = (h.counters||[]).map(x=>norm(x));
 let countersCount = 0;
@@ -275,7 +289,7 @@ if(countersCount){
 }
 
     // forward countered_by penalty
-    if(marks){ h._details.sums.marks += marks * -2; h._details.forward.push({label:'CounteredBy', pts:marks * -2}); }
+    if(marks){ h._details.sums.marks += marks * -3; h._details.forward.push({label:'CounteredBy', pts:marks * -3}); }
 
     // comfort
     const comfort = Number(h.comfort || 0);
@@ -300,16 +314,15 @@ const roleSynergy = {
   support: ['tank','fighter']
 };
 
-if (hr in roleSynergy) {
-  const synergy = allyRoles.some(r => roleSynergy[hr].includes(r));
-  if (synergy) {
+if (synergy) {
     rf = true;
-    h._details.sums.roleFit += 2;
-    h._details.forward.push({label:'RoleFit Synergy', pts:+2});
-  } else {
-    h._details.sums.roleFit += -3;
-    h._details.forward.push({label:'RoleFit Mismatch', pts:-3});
-  }
+    const pts = Math.round(2 * synergyMultiplier);  // scaled by synergy multiplier
+    h._details.sums.roleFit += pts;
+    h._details.forward.push({label:'RoleFit Synergy', pts: pts});
+} else {
+    const pts = Math.round(-3 * synergyMultiplier); // scaled by synergy multiplier
+    h._details.sums.roleFit += pts;
+    h._details.forward.push({label:'RoleFit Mismatch', pts: pts});
 }
 
     // sum forward to total
@@ -686,6 +699,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
