@@ -312,7 +312,6 @@ if (hr in roleSynergy) {
   }
 }
     h.roleFit = rf;
-    if(!rf){ h._details.sums.roleFit += -3; h._details.forward.push({label:'RoleFit', pts:-3}); }
 
     // sum forward to total
     h.total = h._details.sums.map + h._details.sums.compat + h._details.sums.uncompat + h._details.sums.counters + h._details.sums.marks + h._details.sums.comfort + h._details.sums.roleFit;
@@ -662,6 +661,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
