@@ -641,6 +641,7 @@ document.getElementById('importBackup').onchange = e => {
   };
   reader.readAsText(file);
 };
+  
 // --- Autocomplete support ---
 function setupAutocomplete(input) {
   input.addEventListener("input", function() {
@@ -656,13 +657,12 @@ function setupAutocomplete(input) {
 setupAutocomplete(allyInput);
 setupAutocomplete(enemyInput);
 setupAutocomplete(bannedInput);
-
-
 // initial render
 render();
 </script>
 </body>
 </html>
+
 
 
 
