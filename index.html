@@ -304,8 +304,8 @@ if (hr in roleSynergy) {
   const synergy = allyRoles.some(r => roleSynergy[hr].includes(r));
   if (synergy) {
     rf = true;
-    h._details.sums.roleFit += 1;
-    h._details.forward.push({label:'RoleFit Synergy', pts:+1});
+    h._details.sums.roleFit += 2;
+    h._details.forward.push({label:'RoleFit Synergy', pts:+2});
   } else {
     h._details.sums.roleFit += -3;
     h._details.forward.push({label:'RoleFit Mismatch', pts:-3});
@@ -686,6 +686,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
