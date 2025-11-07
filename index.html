@@ -371,6 +371,33 @@ if (hr in roleSynergy) {
   // baseline for recommendation (meta roamers)
   const metaRoam = heroes.filter(h=> !h.disabled && isRoamerHero(h) && norm(h.group)==='meta');
   const baseline = metaRoam.length ? Math.max(...metaRoam.map(h=>h.total)) : (heroes.filter(h=>!h.disabled && isRoamerHero(h)).length ? Math.max(...heroes.filter(h=>!h.disabled && isRoamerHero(h)).map(h=>h.total)) : -9999);
+
+  // --- META AWARENESS MULTIPLIER ---
+heroes.forEach(h => {
+  if (h.disabled) return;
+
+  // Set up multipliers for hero groups
+  const metaMultiplier = {
+    meta: 1.15,
+    situational: 1.05,
+    playable: 1.0,
+    unknown: 0.9
+  };
+
+  const g = (h.group || '').toLowerCase();
+  const mult = metaMultiplier[g] || 1.0;
+
+  // Apply scaling
+  const originalTotal = h.total;
+  h.total = Math.round(originalTotal * mult);
+
+  // Add detail log
+  h._details.forward.push({
+    label: 'Meta Awareness',
+    pts: `×${mult}`
+  });
+});
+
   return {baseline};
 }
 
@@ -659,6 +686,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
