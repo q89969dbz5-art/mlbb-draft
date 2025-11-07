@@ -281,11 +281,11 @@ if(countersCount){
     const comfort = Number(h.comfort || 0);
     if(comfort){ h._details.sums.comfort += comfort; h._details.forward.push({label:'Comfort', pts:comfort}); }
 
-    // --- Hero Proficiency Bonus ---
+    // --- Hero Proficiency Bonus (Balanced +1) ---
 if (myMains.includes(h.name)) {
-  h._details.sums.comfort += 3;
-  h._details.forward.push({label:'Proficiency Bonus', pts:+3});
-  h.total += 3;
+  h._details.sums.comfort += 1;
+  h._details.forward.push({label:'Proficiency Bonus', pts:+1});
+  h.total += 1;
 }
 
     // --- Dynamic RoleFit Synergy ---
@@ -662,6 +662,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
