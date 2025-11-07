@@ -61,6 +61,24 @@
   .rec-box{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02); margin-top:8px;}
   .rec-box.glow{ box-shadow: 0 6px 30px rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.12); }
   @media(max-width:980px){ .grid{grid-template-columns: 1fr} .tally{margin-bottom:10px} }
+  @keyframes glowPulse {
+  0% { box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+  50% { box-shadow: 0 0 22px rgba(255,215,0,0.5); }
+  100% { box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+}
+.rec-box.glow {
+  animation: glowPulse 2s infinite;
+}
+  /* --- Sticky Recommendation Panel --- */
+#recommendation {
+  position: sticky;
+  bottom: 12px;
+  background: var(--card);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.3);
+  z-index: 10;
+}
 </style>
 </head>
 <body>
@@ -159,6 +177,9 @@ let heroes = [
   {name:'Cyclops', role:'Mage', group:'Unknown', counters:[], compatible:[], countered_by:[], maps:[], comfort:2}
 ];
 
+  // --- Your personal proficiency heroes ---
+const myMains = ['Tigreal', 'Angela', 'Gatot', 'Franco']; // ← edit freely
+
 // tabs
 const ROLE_TABS = ['All','Tank','Assassin','Fighter','Mage','Marksman','Support','Roamer'];
 let activeTab = 'All';
@@ -242,11 +263,16 @@ if (bannedList.find(b => norm(b) === norm(h.name))) {
     if(compatCount){ h._details.sums.compat += compatCount; h._details.forward.push({label:'Compat', pts:compatCount}); }
     if(uncompatCount){ h._details.sums.uncompat += uncompatCount * -2; h._details.forward.push({label:'Uncompat', pts:uncompatCount * -2}); }
 
-    // forward counters: +2 per enemy matched
-    const countersLower = (h.counters||[]).map(x=>norm(x));
-    let countersCount = 0;
-    countersLower.forEach(c => { if(enemyList.find(e=> norm(e) === c)) countersCount++; });
-    if(countersCount){ h._details.sums.counters += countersCount * 2; h._details.forward.push({label:'Counters', pts:countersCount * 2}); }
+    // --- Counter Weight Scaling ---
+const countersLower = (h.counters||[]).map(x=>norm(x));
+let countersCount = 0;
+countersLower.forEach(c => { if(enemyList.find(e=> norm(e) === c)) countersCount++; });
+if(countersCount){
+  const scale = Math.min(4, 2 + (countersCount - 1)); // +2 → +3 → +4 max
+  const pts = countersCount * scale;
+  h._details.sums.counters += pts;
+  h._details.forward.push({label:`Counters (${countersCount}x)`, pts});
+}
 
     // forward countered_by penalty
     if(marks){ h._details.sums.marks += marks * -2; h._details.forward.push({label:'CounteredBy', pts:marks * -2}); }
@@ -255,13 +281,36 @@ if (bannedList.find(b => norm(b) === norm(h.name))) {
     const comfort = Number(h.comfort || 0);
     if(comfort){ h._details.sums.comfort += comfort; h._details.forward.push({label:'Comfort', pts:comfort}); }
 
-    // auto RoleFit
-    let rf = false;
-    const hr = norm(h.role);
-    if(hr==='tank' || hr==='support' || extraRoamers.includes(norm(h.name))) rf = true;
-    if(mapMatch) rf = true;
-    if(hr==='support' && hasSupportAlly) rf = false;
-    if(hr==='tank' && tankCountAlly >= 2) rf = false;
+    // --- Hero Proficiency Bonus ---
+if (myMains.includes(h.name)) {
+  h._details.sums.comfort += 3;
+  h._details.forward.push({label:'Proficiency Bonus', pts:+3});
+  h.total += 3;
+}
+
+    // --- Dynamic RoleFit Synergy ---
+let rf = false;
+const hr = norm(h.role);
+const roleSynergy = {
+  tank: ['fighter','support'],
+  fighter: ['tank','assassin'],
+  assassin: ['fighter','marksman'],
+  mage: ['support','marksman'],
+  marksman: ['mage','assassin'],
+  support: ['tank','fighter']
+};
+
+if (hr in roleSynergy) {
+  const synergy = allyRoles.some(r => roleSynergy[hr].includes(r));
+  if (synergy) {
+    rf = true;
+    h._details.sums.roleFit += 1;
+    h._details.forward.push({label:'RoleFit Synergy', pts:+1});
+  } else {
+    h._details.sums.roleFit += -3;
+    h._details.forward.push({label:'RoleFit Mismatch', pts:-3});
+  }
+}
     h.roleFit = rf;
     if(!rf){ h._details.sums.roleFit += -3; h._details.forward.push({label:'RoleFit', pts:-3}); }
 
@@ -592,12 +641,29 @@ document.getElementById('importBackup').onchange = e => {
   };
   reader.readAsText(file);
 };
+// --- Autocomplete support ---
+function setupAutocomplete(input) {
+  input.addEventListener("input", function() {
+    const lastWord = this.value.split(',').pop().trim().toLowerCase();
+    const match = heroes.filter(h => h.name.toLowerCase().startsWith(lastWord));
+    this.setAttribute("list", input.id + "_list");
+    const datalist = document.getElementById(input.id + "_list") || document.createElement("datalist");
+    datalist.id = input.id + "_list";
+    datalist.innerHTML = match.map(h => `<option value="${h.name}">`).join('');
+    document.body.appendChild(datalist);
+  });
+}
+setupAutocomplete(allyInput);
+setupAutocomplete(enemyInput);
+setupAutocomplete(bannedInput);
+
 
 // initial render
 render();
 </script>
 </body>
 </html>
+
 
 
 
