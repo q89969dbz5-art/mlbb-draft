@@ -250,7 +250,7 @@ h.marks = marks;
 
 // --- Synergy multiplier if hero is countered
 let synergyMultiplier = 1;
-if(marks === 1) synergyMultiplier = 0.7;    // 1 counter → 70% points
+if(marks === 1) synergyMultiplier = 0.5;    // 1 counter → 50% points
 
 if(marks >= 2) h.disabled = true;
 if(h.disabled) return;
@@ -347,8 +347,8 @@ if (synergy) {
       if(!target) return;
       if(target.disabled) return;
       target._details.reverse = target._details.reverse || [];
-      target._details.reverse.push({label:'Rev Counter', pts:-2});
-      target.total += -2;
+      target._details.reverse.push({label:'Rev Counter', pts:-3});
+      target.total += -3;
       target._details.total = target.total;
     });
     // enHero.countered_by -> heroes that counter EN => they get +2
@@ -706,6 +706,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
