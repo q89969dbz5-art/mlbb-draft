@@ -121,10 +121,6 @@
    - Shows top 3 picks
 */
 
-  function norm(s){
-  return String(s||'').trim().toLowerCase();
-}
-
 function normalizeList(list){
   return (list || []).map(x => norm(x));
 }
@@ -522,6 +518,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
