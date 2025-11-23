@@ -338,7 +338,7 @@ const recommendationBox = document.getElementById('recommendation');
 function roleFilter(h){
   if(activeTab === 'All') return true;
   if(activeTab === 'Roamer') return isRoamerHero(h);
-  return norm(h.role) === norm(activeTab);
+  return norm(h.group) === norm(activeTab);
 }
 
 function render(){
@@ -362,12 +362,9 @@ function render(){
       <td><input data-idx="${idx}" data-key="name" value="${escapeHtml(h.name)}" style="width:120px"></td>
       <td><input data-idx="${idx}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
       <td>
-        <select data-idx="${idx}" data-key="archetype">
-          <option value="">Choose</option>
-          <option ${h.archetype==='Pick-off'?'selected':''}>Pick-off</option>
-          <option ${h.archetype==='Teamfight'?'selected':''}>Teamfight</option>
-          <option ${h.archetype==='Split Push/Cover'?'selected':''}>Split Push/Cover</option>
-        </select>
+       <input data-idx="${idx}" data-key="archetype" 
+       value="${h.archetype}" 
+       placeholder="Pick-off, Teamfight" />
       </td>
       <td><input data-idx="${idx}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:140px"></td>
       <td><input data-idx="${idx}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:140px"></td>
@@ -577,6 +574,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
