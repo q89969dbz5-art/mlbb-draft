@@ -185,6 +185,13 @@ const ROLE_TABS = ['All','Tank','Assassin','Fighter','Mage','Marksman','Support'
 let activeTab = 'All';
 const extraRoamers = ['chou','badang','khaleed','kaja'];
 
+  function isRoamerHero(h){
+  // normalize the name
+  const n = norm(h.name);
+  // check if this hero is in the extraRoamers list
+  return extraRoamers.includes(n);
+}
+
 let allyList = [], enemyList = [];
 let bannedList = [];
 
@@ -338,7 +345,7 @@ const recommendationBox = document.getElementById('recommendation');
 function roleFilter(h){
   if(activeTab === 'All') return true;
   if(activeTab === 'Roamer') return isRoamerHero(h);
-  return norm(h.group) === norm(activeTab);
+  return norm(h.role) === norm(activeTab);
 }
 
 function render(){
@@ -574,6 +581,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
