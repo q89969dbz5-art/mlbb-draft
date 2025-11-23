@@ -257,7 +257,7 @@ function computeTotals(){
 
       // If this hero soft-counters that enemy (soft_counters)
       if(h.soft_counters.find(c => norm(c) === enNorm)){
-        h.total += 1;
+        h.total += 2;
         h._details.forward.push({label:`SoftCounters ${en}`, pts:+1});
       }
 
@@ -581,6 +581,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
