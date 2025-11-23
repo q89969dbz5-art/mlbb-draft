@@ -222,7 +222,7 @@ function computeTotals(){
       const enHero = nameMap[enNorm];
       if(enHero && Array.isArray(enHero.counters) && enHero.counters.find(x=>norm(x) === norm(h.name))){
         total += SCORES.enemyHardCounter;
-        h._details.forward.push({label:`Countered-by ${en}`, pts: SCORES.enemyHardCounter});
+        h._details.forward.push({label:`Hard-countered-by ${en}`, pts: SCORES.enemyHardCounter});
       }
       // static: enemy soft-counters this hero (enemy.soft_counters)
       if(enHero && Array.isArray(enHero.soft_counters) && enHero.soft_counters.find(x=>norm(x) === norm(h.name))){
@@ -482,5 +482,6 @@ render();
 </script>
 </body>
 </html>
+
 
 
