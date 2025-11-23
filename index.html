@@ -1,16 +1,27 @@
-<!-- Save as mlbb-macro-draft-v1.html and open in a browser -->
+<!-- Save as mlbb-roamer-v6.html and open in a browser -->
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>MLBB Draft — Macro + Counter System (v1)</title>
+<title>MLBB Draft — v6 (Gold Roamer Tab Edition)</title>
+
+<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js')
+      .then(() => console.log('✅ Service Worker registered'))
+      .catch(err => console.log('❌ Service Worker failed', err));
+  }
+</script>
+
 <style>
   :root{
     --bg:#061025; --card:#0b1220; --muted:#9aa6bb; --accent:#66e0b3;
     --danger:#ff6b6b; --good:#66e0b3; --bad:#ff7a7a;
     --gold:#ffd700;
     font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+.banned { color:#ff5555; font-weight:700; }
   }
   body{background:linear-gradient(180deg,#04101a 0%, #071028 100%); color:#e6eef8; margin:0; padding:18px;}
   .wrap{max-width:1200px;margin:0 auto;}
@@ -20,6 +31,8 @@
   .tabs{display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap}
   .tab{padding:8px 12px; border-radius:8px; cursor:pointer; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--muted)}
   .tab.active{background:linear-gradient(90deg, rgba(102,224,179,0.06), transparent); color:var(--accent); border-color:rgba(102,224,179,0.12)}
+  .tab.roamer{ color:var(--gold); border-color: rgba(255,215,0,0.12); }
+  .tab.roamer.active{ background: linear-gradient(90deg, rgba(255,215,0,0.06), transparent); color:var(--gold); border-color: rgba(255,215,0,0.22); box-shadow: 0 6px 18px rgba(255,215,0,0.06); }
   .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   input[type="text"], input[type="number"], select, textarea {padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04); background:transparent; color:inherit}
   button{background:var(--accent); color:#022; border:0; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700}
@@ -27,43 +40,71 @@
   table{width:100%; border-collapse:collapse; margin-top:8px}
   th,td{padding:8px 10px; text-align:left; font-size:13px; vertical-align:top}
   th{color:var(--muted); font-size:12px; text-transform:uppercase}
+  tr.recommended{outline:3px solid rgba(102,224,179,0.08); background:linear-gradient(90deg, rgba(102,224,179,0.02), transparent)}
   tr.removed{opacity:0.45}
   .muted{color:var(--muted)}
   .small{font-size:12px;color:var(--muted)}
   .tally{background:rgba(255,255,255,0.015); border-radius:8px; padding:8px; margin-top:6px}
   .tally-row{display:flex; justify-content:space-between; gap:10px; padding:2px 0; font-size:13px}
+  .tally-row .k{color:var(--muted); width:60%}
+  .tally-row .v{width:40%; text-align:right; font-weight:700}
   .total-hero{margin-top:8px; padding:8px; border-radius:8px; background:linear-gradient(90deg, rgba(102,224,179,0.04), transparent); font-weight:800; display:flex; justify-content:space-between}
   .score-neg{color:var(--bad)}
   .score-pos{color:var(--good)}
   .grid{display:grid; grid-template-columns: 1fr 420px; gap:12px}
+  .uncompat{color:#ffb3b3; font-weight:700}
+  .compat{color:var(--accent); font-weight:700}
   .hint{font-size:12px;color:var(--muted); margin-top:6px}
+  .small-btn{padding:6px 8px; font-size:13px; border-radius:6px}
+  .detail-line{font-size:12px; color:var(--muted);}
+  .reverse-tag{font-size:12px; color:#ffd88f; margin-left:6px}
   .rec-box{padding:10px;border-radius:8px;background:rgba(255,255,255,0.02); margin-top:8px;}
-  #recommendation { position: sticky; bottom: 12px; }
+  .rec-box.glow{ box-shadow: 0 6px 30px rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.12); }
   @media(max-width:980px){ .grid{grid-template-columns: 1fr} .tally{margin-bottom:10px} }
+  @keyframes glowPulse {
+  0% { box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+  50% { box-shadow: 0 0 22px rgba(255,215,0,0.5); }
+  100% { box-shadow: 0 0 8px rgba(255,215,0,0.2); }
+}
+.rec-box.glow {
+  animation: glowPulse 2s infinite;
+}
+  /* --- Sticky Recommendation Panel --- */
+#recommendation {
+  position: sticky;
+  bottom: 12px;
+  background: var(--card);
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.3);
+  z-index: 10;
+}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>MLBB Draft — Macro + Counter System</h1>
-  <p class="lead">Pure macro + counter draft. No comfort. You can type multiple archetypes for a hero (e.g. "Pick-Off / Split"). Top 3 recommended picks shown.</p>
+  <h1>MLBB Draft — v6</h1>
+  <p class="lead">Gold Roamer tab added. Live two-way scoring and inline reverse tags remain. Recommended pick will glow gold when Roamer tab is active.</p>
 
   <div class="card">
     <div class="tabs" id="roleTabs"></div>
     <div class="controls" style="margin-top:6px; align-items:center;">
-      <div style="min-width:320px">
+      <div style="min-width:300px">
         <label class="small">Ally picks (live)</label><br/>
         <input id="allyPicks" type="text" placeholder="e.g. Tigreal, Angela, Brody" style="width:100%">
       </div>
-      <div style="min-width:320px">
+      <div style="min-width:300px">
         <label class="small">Enemy picks (live)</label><br/>
         <input id="enemyPicks" type="text" placeholder="e.g. Gatot, Lolita, Hilda" style="width:100%">
       </div>
-      <div style="min-width:240px">
-        <label class="small">Banned heroes</label><br/>
-        <input id="bannedPicks" type="text" placeholder="e.g. Valentina, Franco" style="width:100%">
+  <div style="min-width:260px">
+  <label class="small">Banned heroes</label><br/>
+  <input id="bannedPicks" type="text" placeholder="e.g. Valentina, Franco" style="width:100%">
+</div>
+      <div style="margin-left:8px">
+        <div class="hint">Tip: for lists use commas — archetypes: Pick-off, Teamfight, Split Push/Cover</div>
       </div>
     </div>
-    <div class="hint">Macro types (examples): Pick-Off, Teamfight, Split-Push. Use "/" to add multiple archetypes for a hero.</div>
   </div>
 
   <div class="card">
@@ -75,8 +116,8 @@
       <button id="loadLocal" class="ghost">Load</button>
       <button id="exportCsv" class="ghost">Export CSV</button>
       <button id="exportBackup" class="ghost">⬇️ Export Backup</button>
-      <input type="file" id="importBackup" accept=".json,.csv" style="display:none">
-      <label for="importBackup" class="ghost" style="cursor:pointer;">⬆️ Import Backup/CSV</label>
+<input type="file" id="importBackup" accept=".json" style="display:none">
+<label for="importBackup" class="ghost" style="cursor:pointer;">⬆️ Import Backup</label>
     </div>
 
     <div class="grid">
@@ -84,15 +125,18 @@
         <table>
           <thead>
             <tr>
-              <th>Hero</th><th>Role</th><th>Group</th><th>Archetype(s)</th><th>Hard Counters</th><th>Soft Counters</th><th>Counters</th><th>Total</th><th></th>
+              <th>Hero</th>
+              <th>Role</th>
+              <th>Archetype</th>
+              <th>Hard Counter</th>
+              <th>Soft Counter</th>
+              <th>Counters</th>
+              <th>Total</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="heroesTable"></tbody>
         </table>
-
-        <div style="margin-top:8px;">
-          <button id="addHero" class="ghost">+ Add hero</button>
-        </div>
       </div>
 
       <div>
@@ -100,12 +144,12 @@
           <div style="display:flex; justify-content:space-between; align-items:center;">
             <div>
               <h3 style="margin:0">Tallies — role view</h3>
-              <div class="small muted">Tally list shows heroes for active tab (or all for 'All').</div>
+              <div class="small muted">Tally list shows heroes for the active tab (or all for 'All').</div>
             </div>
             <div><button id="clearInputs" class="ghost">Clear Ally/Enemy</button></div>
           </div>
 
-          <div id="tallyList" style="margin-top:12px; max-height:48vh; overflow:auto;"></div>
+          <div id="tallyList" style="margin-top:12px; max-height:58vh; overflow:auto;"></div>
           <div id="recommendation" style="margin-top:12px"></div>
         </div>
       </div>
@@ -114,190 +158,174 @@
 </div>
 
 <script>
-/* Macro + Counter draft v1
-   - Text archetype for each hero (can contain multiple separated by '/')
-   - Hard counters (countered_by) and soft counters fields supported
-   - Auto-detect enemy macro; compute hero score using counters + macro rock-paper
-   - Shows top 3 picks
+/* v6 - Gold Roamer Tab Edition (surgically updated)
+   - Map UI removed
+   - Comfort/compatible removed
+   - Table adjusted: HERO | ROLE | ARCHETYPE | HARD COUNTER | SOFT COUNTER | COUNTERS
+   - Archetype triangle scoring added
+   - Hard/Soft counter scoring implemented
 */
 
-function normalizeList(list){
-  return (list || []).map(x => norm(x));
-}
-
-// sample heroes (prefill)
+// ---------- Prefill sample (surgically adapted) ----------
 let heroes = [
-  {name:'Chip', role:'Tank', group:'Meta', macro:'Teamfight', counters:['Alucard'], hard_counters:['Gatot'], soft_counters:[]},
-  {name:'Alucard', role:'Assassin', group:'Unknown', macro:'Pick-Off', counters:['Kalea'], hard_counters:['Gatot','Chip'], soft_counters:[]},
-  {name:'Gatot', role:'Tank', group:'Meta', macro:'Teamfight', counters:['Alucard'], hard_counters:[], soft_counters:[]},
-  {name:'Kalea', role:'Support', group:'Playable', macro:'Teamfight', counters:[], hard_counters:['Alucard'], soft_counters:[]},
-  {name:'Franco', role:'Tank', group:'Situational', macro:'Pick-Off', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Angela', role:'Support', group:'Playable', macro:'Teamfight', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Tigreal', role:'Tank', group:'Playable', macro:'Teamfight', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Chou', role:'Fighter', group:'Situational', macro:'Pick-Off / Split-Push', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Badang', role:'Fighter', group:'Situational', macro:'Split-Push', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Granger', role:'Marksman', group:'Meta', macro:'Pick-Off', counters:[], hard_counters:[], soft_counters:[]},
-  {name:'Cyclops', role:'Mage', group:'Unknown', macro:'Pick-Off', counters:[], hard_counters:[], soft_counters:[]}
+  {name:'Chip', role:'Tank', group:'Meta', archetype:'Teamfight', hard_counters:['Gatot'], soft_counters:[], counters:['Alucard']},
+  {name:'Alucard', role:'Assassin', group:'Unknown', archetype:'Pick-off', hard_counters:['Gatot','Chip'], soft_counters:[], counters:['Kalea']},
+  {name:'Gatot', role:'Tank', group:'Meta', archetype:'Teamfight', hard_counters:[], soft_counters:[], counters:['Alucard']},
+  {name:'Kalea', role:'Support', group:'Playable', archetype:'Teamfight', hard_counters:['Alucard'], soft_counters:[], counters:[]},
+  {name:'Franco', role:'Tank', group:'Situational', archetype:'Pick-off', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Angela', role:'Support', group:'Playable', archetype:'Teamfight', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Tigreal', role:'Tank', group:'Playable', archetype:'Teamfight', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Chou', role:'Fighter', group:'Situational', archetype:'Pick-off', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Badang', role:'Fighter', group:'Situational', archetype:'Split Push/Cover', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Granger', role:'Marksman', group:'Meta', archetype:'Pick-off', hard_counters:[], soft_counters:[], counters:[]},
+  {name:'Cyclops', role:'Mage', group:'Unknown', archetype:'Pick-off', hard_counters:[], soft_counters:[], counters:[]}
 ];
 
 const ROLE_TABS = ['All','Tank','Assassin','Fighter','Mage','Marksman','Support','Roamer'];
 let activeTab = 'All';
-const extraRoamers = ['chou','badang','khaleed','kaja','jawhead','Arlott','Guinevere','Ruby','Helcurt'];
+const extraRoamers = ['chou','badang','khaleed','kaja'];
 
-let allyList = [], enemyList = [], bannedList = [];
+let allyList = [], enemyList = [];
+let bannedList = [];
 
+// helpers
 function norm(s){ return String(s||'').trim().replace(/\s+/g,' ').toLowerCase(); }
 function parseList(s){ return String(s||'').split(',').map(x=>x.trim()).filter(Boolean); }
-function splitMacros(txt){
-  if(!txt) return [];
-  return String(txt).split('/').map(x=>x.trim()).filter(Boolean).map(x=>x.toLowerCase());
-}
 
-// is roamer hero (keeps old logic)
-function isRoamerHero(h){
-  const r = norm(h.role);
-  if(r==='tank' || r==='support' || r==='roamer') return true;
-  if(extraRoamers.includes(norm(h.name))) return true;
-  return false;
-}
-
-// ---------- core scoring ----------
-// scoring constants (easy to edit)
-const SCORES = {
-  heroCountersEnemy: 3,        // hero directly counters an enemy (+)
-  heroSoftCountersEnemy: 1,    // hero soft-counters an enemy (+)
-  enemyHardCounter: -4,        // enemy directly hard-counters this hero (-)
-  enemySoftCounter: -2,        // enemy soft counters (-)
-  macroAdvantage: 2,           // if hero archetype beats enemy macro (rock-paper)
-  macroDisadvantage: -2        // if hero archetype is beaten by enemy macro
+// ---------- computeTotals (replaced) ----------
+const archetypeTriangle = {
+  'teamfight': 'pick-off',          // teamfight COUNTERS pick-off
+  'pick-off': 'split push/cover',   // pick-off COUNTERS split
+  'split push/cover': 'teamfight'   // split COUNTERS teamfight
 };
 
-// macro rock-paper relationships (user-defined)
-const macroBeats = {
-  'pick-off': 'split-push',      // pick-off beats split
-  'split-push': 'teamfight',     // split beats teamfight
-  'teamfight': 'pick-off'        // teamfight beats pick-off
-};
-
-// detect enemy macro from enemyList (count archetypes present)
-function detectMacroForSide(list){
-  const counts = {}; // macro -> count
+function determineComposition(list){
+  const counts = {};
   list.forEach(name => {
     const h = heroes.find(x => norm(x.name) === norm(name));
     if(!h) return;
-    splitMacros(h.macro||'').forEach(m => {
-      counts[m] = (counts[m]||0) + 1;
-    });
+    const a = (h.archetype || '').toString().trim().toLowerCase();
+    if(!a) return;
+    counts[a] = (counts[a] || 0) + 1;
   });
-  // pick the macro with highest count; if tie, pick last two picks' macro majority
-  let best = null, bestC = 0;
-  for(const [m,c] of Object.entries(counts)){
-    if(c > bestC){ best = m; bestC = c; }
+  // composition is any archetype with 2 or more heroes
+  for(const k of Object.keys(counts)){
+    if(counts[k] >= 2) return k;
   }
-  return best; // may be undefined
+  return null;
 }
 
-// compute totals for every hero and produce details
 function computeTotals(){
   const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
-  const enemyMacro = detectMacroForSide(enemyList);
-  const allyMacro = detectMacroForSide(allyList);
+  const enemyComposition = determineComposition(enemyList);
+  const allyComposition = determineComposition(allyList);
 
   heroes.forEach(h => {
-  h._details = { forward:[], reverse:[], total:0 };
-  if(bannedList.some(b=>norm(b) === norm(h.name))){ 
-    h.disabled = true; 
-    h._details.forward.push({label:'BANNED', pts:0}); 
-    h.total = 0; 
-    return; 
-  }
-  h.disabled = false;
-  let total = 0;
-
-  const heroCounters = normalizeList(h.counters);
-  const heroSoftCounters = normalizeList(h.soft_counters);
-  const heroHardCounters = normalizeList(h.hard_counters); // optional
-
-  enemyList.forEach(en => {
-    const enHero = heroes.find(x => norm(x.name) === norm(en));
-    if(!enHero) return;
-
-    const enemyHard = normalizeList(enHero.hard_counters);
-    const enemySoft = normalizeList(enHero.soft_counters);
-
-    // If hero counters enemy directly
-    if(heroCounters.includes(norm(en))){
-      total += SCORES.heroCountersEnemy;
-      h._details.forward.push({label:`Counters ${en}`, pts: SCORES.heroCountersEnemy});
-    }
-
-    // If hero soft-counters enemy
-    if(heroSoftCounters.includes(norm(en))){
-      total += SCORES.heroSoftCountersEnemy;
-      h._details.forward.push({label:`SoftCounters ${en}`, pts: SCORES.heroSoftCountersEnemy});
-    }
-
-    // If enemy hard-counters this hero
-    if(enemyHard.includes(norm(h.name))){
-      total += SCORES.enemyHardCounter;
-      h._details.forward.push({label:`Hard-countered-by ${en}`, pts: SCORES.enemyHardCounter});
-    }
-
-    // If enemy soft-counters this hero
-    if(enemySoft.includes(norm(h.name))){
-      total += SCORES.enemySoftCounter;
-      h._details.forward.push({label:`Soft-countered-by ${en}`, pts: SCORES.enemySoftCounter});
-    }
+    h._details = { forward:[], reverse:[], total:0 };
+    h.disabled = !!(Array.isArray(bannedList) && bannedList.find(b => norm(b) === norm(h.name)));
+    h.total = 0;
   });
 
-  h.total = total;
-  h._details.total = total;
-});
+  // Forward pass: counters hero defines (hero.counters / hero.hard_counters / hero.soft_counters)
+  heroes.forEach(h => {
+    if(h.disabled) return;
+    // ensure arrays exist
+    h.counters = Array.isArray(h.counters) ? h.counters : [];
+    h.hard_counters = Array.isArray(h.hard_counters) ? h.hard_counters : [];
+    h.soft_counters = Array.isArray(h.soft_counters) ? h.soft_counters : [];
+    const heroNameNorm = norm(h.name);
 
-    // Macro interactions: if hero macro beats enemy macro => macroAdvantage
-    const heroMacros = splitMacros(h.macro || '');
-    if(enemyMacro){
-      heroMacros.forEach(hm => {
-        const enemyMacroKey = enemyMacro.toLowerCase();
-        const isAdv = macroBeats[hm] === enemyMacroKey;
-        const isDis = macroBeats[enemyMacroKey] === hm;
-        if(isAdv){ total += SCORES.macroAdvantage; h._details.forward.push({label:`Macro adv vs ${enemyMacro}`, pts: SCORES.macroAdvantage}); }
-        else if(isDis){ total += SCORES.macroDisadvantage; h._details.forward.push({label:`Macro disadv vs ${enemyMacro}`, pts: SCORES.macroDisadvantage}); }
-      });
-    }
+    // For each enemy pick
+    enemyList.forEach(en => {
+      const enNorm = norm(en);
+      // If this hero directly counters that enemy (hard)
+      if(h.hard_counters.find(c=> norm(c) === enNorm)){
+        h.total += 3;
+        h._details.forward.push({label:`Counters (hard) ${en}`, pts:+3});
+      } else if(h.counters.find(c => norm(c) === enNorm)){
+        // counters[] treated as softer positive
+        h.total += 1;
+        h._details.forward.push({label:`Counters ${en}`, pts:+1});
+      }
 
-    // Ally macro synergy: if ally macro exists and hero archetype supports it, give small bonus
-    if(allyMacro){
-      heroMacros.forEach(hm=>{
-        // simple rule: if hero macro == allyMacro, small extra bonus
-        if(hm === allyMacro.toLowerCase()){
-          total += 1;
-          h._details.forward.push({label:`Ally macro synergy (${allyMacro})`, pts: +1});
+      // If this hero soft-counters that enemy (soft_counters)
+      if(h.soft_counters.find(c => norm(c) === enNorm)){
+        h.total += 1;
+        h._details.forward.push({label:`SoftCounters ${en}`, pts:+1});
+      }
+
+      // If enemy counters this hero (enemy.hard_counters includes this hero) => penalty -4
+      const enHero = nameMap[enNorm];
+      if(enHero){
+        if(Array.isArray(enHero.hard_counters) && enHero.hard_counters.find(x => norm(x) === heroNameNorm)){
+          h.total += -4;
+          h._details.forward.push({label:`Hard-countered-by ${en}`, pts:-4});
         }
-      });
+        // enemy soft counters this hero => -2
+        if(Array.isArray(enHero.soft_counters) && enHero.soft_counters.find(x => norm(x) === heroNameNorm)){
+          h.total += -2;
+          h._details.forward.push({label:`Soft-countered-by ${en}`, pts:-2});
+        }
+      }
+    });
+
+    // Archetype interactions (triangle)
+    const myArc = (h.archetype || '').toString().trim().toLowerCase();
+    if(enemyComposition && myArc){
+      // If my archetype COUNTERS the enemy composition => +1
+      if(archetypeTriangle[myArc] === enemyComposition){
+        h.total += 1;
+        h._details.forward.push({label:`Archetype adv vs ${enemyComposition}`, pts:+1});
+      }
+      // If enemy composition counters my archetype => -1
+      if(archetypeTriangle[enemyComposition] === myArc){
+        h.total += -1;
+        h._details.forward.push({label:`Archetype disadv vs ${enemyComposition}`, pts:-1});
+      }
     }
 
-    h.total = total;
-    h._details.total = total;
-  };
+    h._details.total = h.total;
+  });
 
-  return { enemyMacro, allyMacro };
+  // Reverse pass: enemy picks give reverse effects for heroes that are listed as counters on enemy heroes
+  enemyList.forEach(en => {
+    const enHero = nameMap[norm(en)];
+    if(!enHero) return;
+    (enHero.counters || []).forEach(targetName => {
+      const target = nameMap[norm(targetName)];
+      if(!target || target.disabled) return;
+      target._details.reverse = target._details.reverse || [];
+      // enemy lists target in their counters -> target gets a reverse negative (treated as -3)
+      target._details.reverse.push({label:`Rev Counter (enemy ${en})`, pts:-3});
+      target.total += -3;
+      target._details.total = target.total;
+    });
+  });
+
+  return { enemyComposition, allyComposition };
 }
 
-// decision: pick among heroes limited to roamer-eligible when Roamer tab active
+// decision logic: picks from roamer-eligible heroes only
 function decidePick(){
   computeTotals();
-  const pool = heroes.filter(h=> !h.disabled && (activeTab === 'All' || (activeTab === 'Roamer' ? isRoamerHero(h) : norm(h.role) === norm(activeTab))));
-  if(pool.length === 0) return {picks: []};
+  const pool = heroes.filter(h=> !h.disabled && isRoamerHero(h));
+  if(pool.length===0) return {pickIdx:-1, reason:'No eligible roamer heroes.'};
   const sorted = pool.slice().sort((a,b)=> b.total - a.total);
-  return {picks: sorted.slice(0,3)};
+  const top = sorted[0];
+  const topMetaList = heroes.filter(h=> !h.disabled && isRoamerHero(h) && norm(h.group)==='meta');
+  const topMeta = topMetaList.length ? topMetaList.reduce((a,b)=> a.total>b.total? a : b, sorted[0]) : top;
+  const group = norm(top.group||'');
+  if(group==='meta') return {pickIdx: heroes.indexOf(top), reason:`Top hero is Meta (${top.name} ${top.total}).`};
+  if(group==='situational'){ if(top.total >= (topMeta.total + 2)) return {pickIdx: heroes.indexOf(top), reason:`Situational ${top.name} >= top Meta +2 (${top.total} >= ${topMeta.total + 2}).`}; else return {pickIdx: heroes.indexOf(topMeta), reason:`Situational ${top.name} did NOT exceed top Meta +2 → pick ${topMeta.name}.`}; }
+  if(group==='playable'){ if(top.total >= (topMeta.total + 3)) return {pickIdx: heroes.indexOf(top), reason:`Playable ${top.name} >= top Meta +3 (${top.total} >= ${topMeta.total + 3}).`}; else return {pickIdx: heroes.indexOf(topMeta), reason:`Playable ${top.name} did NOT exceed top Meta +3 → pick ${topMeta.name}.`}; }
+  return {pickIdx: heroes.indexOf(top), reason:'Fallback pick.'};
 }
 
-// ---------- UI render ----------
+// ---------- UI ----------
 const roleTabsEl = document.getElementById('roleTabs');
 ROLE_TABS.forEach(tabName => {
   const btn = document.createElement('button');
-  btn.className = 'tab' + (tabName===activeTab ? ' active' : '');
+  btn.className = 'tab' + (tabName==='Roamer' ? ' roamer' : '') + (tabName===activeTab ? ' active' : '');
   btn.textContent = tabName;
   btn.onclick = () => { activeTab = tabName; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); btn.classList.add('active'); render(); };
   roleTabsEl.appendChild(btn);
@@ -315,209 +343,242 @@ function roleFilter(h){
 
 function render(){
   const filterText = (document.getElementById('filter').value||'').trim().toLowerCase();
-  const meta = computeTotals();
+  const dec = computeTotals();
 
-  // heroes table
+  // left table
   heroesTable.innerHTML = '';
   const visible = heroes.filter(h => roleFilter(h) && (filterText === '' || norm(h.name).includes(filterText)));
   visible.forEach(h => {
-    const i = heroes.indexOf(h); // Step 2: get index in main array
+    const idx = heroes.indexOf(h);
     const tr = document.createElement('tr');
     if(h.disabled) tr.classList.add('removed');
+
+    const maps = (h.maps||[]).join(', ');
+    const countered = (h.countered_by||[]).join(', ');
+    const compatRaw = Array.isArray(h.compatible) ? h.compatible.join(', ') : (h.compatible||'');
+    const counters = (h.counters||[]).join(', ');
+
     tr.innerHTML = `
-      <td><input data-idx="${i}" data-key="name" value="${escapeHtml(h.name)}" style="width:110px"></td>
-      <td><input data-idx="${i}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
+      <td><input data-idx="${idx}" data-key="name" value="${escapeHtml(h.name)}" style="width:120px"></td>
+      <td><input data-idx="${idx}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
       <td>
-        <select data-idx="${i}" data-key="group">
-          <option ${h.group==='Meta'?'selected':''}>Meta</option>
-          <option ${h.group==='Situational'?'selected':''}>Situational</option>
-          <option ${h.group==='Playable'?'selected':''}>Playable</option>
-          <option ${h.group==='Unknown'?'selected':''}>Unknown</option>
+        <select data-idx="${idx}" data-key="archetype">
+          <option value="">Choose</option>
+          <option ${h.archetype==='Pick-off'?'selected':''}>Pick-off</option>
+          <option ${h.archetype==='Teamfight'?'selected':''}>Teamfight</option>
+          <option ${h.archetype==='Split Push/Cover'?'selected':''}>Split Push/Cover</option>
         </select>
       </td>
-      <td><input data-idx="${i}" data-key="macro" value="${escapeHtml(h.macro||'')}" style="width:140px"></td>
-      <td><input data-idx="${i}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:120px"></td>
-      <td><input data-idx="${i}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:120px"></td>
-      <td><input data-idx="${i}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:120px"></td>
-      <td><strong>${typeof h.total === 'number' ? h.total : '0'}</strong></td>
+      <td><input data-idx="${idx}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:140px"></td>
+      <td><input data-idx="${idx}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:140px"></td>
+      <td><input data-idx="${idx}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:140px"></td>
+      <td><strong>${h.disabled? 'REMOVED' : (typeof h.total==='number' ? h.total : '0')}</strong></td>
       <td>
         <div style="display:flex; gap:6px;">
-          <button data-action="dup" data-idx="${i}" class="ghost">⧉</button>
-          <button data-action="rm" data-idx="${i}" class="ghost">✖</button>
+          <button data-action="dup" data-idx="${idx}" class="ghost">⧉</button>
+          <button data-action="rm" data-idx="${idx}" class="ghost">✖</button>
         </div>
       </td>
     `;
     heroesTable.appendChild(tr);
   });
 
-  // attach listeners
+  // attach listeners in table
   heroesTable.querySelectorAll('input,select,button').forEach(el=>{
     const idx = el.dataset.idx; if(typeof idx === 'undefined') return;
     const key = el.dataset.key;
     if(el.tagName === 'INPUT' && el.type === 'text'){
       el.onblur = e => {
-  const val = e.target.value;
-  if(key === 'name') heroes[idx].name = val.trim();
-  else if(key === 'macro') heroes[idx].macro = val.trim();
-  else heroes[idx][key] = val.split(',').map(s => norm(s)); // normalize array values
-  render();
-};
+        const val = e.target.value;
+        if(key === 'name') heroes[idx].name = val.trim();
+        else if(key === 'hard_counters' || key === 'soft_counters' || key === 'counters'){
+          heroes[idx][key] = val.split(',').map(s=>s.trim()).filter(Boolean);
+        } else if(key === 'role'){
+          heroes[idx].role = val.trim();
+        }
+        render();
+      };
     } else if(el.tagName === 'SELECT'){
-      el.onchange = e => { heroes[idx][key] = e.target.value; render(); };
+      el.onchange = e => {
+        const val = e.target.value;
+        if(key === 'group') heroes[idx].group = val;
+        else if(key === 'archetype') heroes[idx].archetype = val;
+        render();
+      };
     } else if(el.tagName === 'BUTTON'){
       el.onclick = e => {
-        const act = e.target.dataset.action; const i = Number(e.target.dataset.idx);
+        const act = e.target.dataset.action;
+        const i = Number(e.target.dataset.idx);
         if(act === 'rm'){ heroes.splice(i,1); render(); }
         if(act === 'dup'){ heroes.splice(i+1,0, JSON.parse(JSON.stringify(heroes[i]))); render(); }
       };
     }
   });
 
-  // tally list (right)
+  // right tally list
   tallyList.innerHTML = '';
   const visibleForTally = heroes.filter(h => roleFilter(h)).sort((a,b)=> (b.total||0) - (a.total||0));
   visibleForTally.forEach(h=>{
     const bd = h._details || {forward:[], reverse:[], total:h.total||0};
     const div = document.createElement('div'); div.style.marginBottom='10px'; div.style.borderBottom='1px solid rgba(255,255,255,0.03)';
-    const forwardLines = (bd.forward||[]).map(it=> `<div class="detail-line">${escapeHtml(it.label)} <span style="float:right; font-weight:700">${typeof it.pts === 'number' && it.pts>=0 ? '+'+it.pts : it.pts}</span></div>`).join('');
+    const parsed = {compat:[], uncompat:[]}; // compat removed; keep simple structure
+    const cp = '';
+    const up = '';
+    const compatDisplay = '';
+
+    const forwardLines = (bd.forward||[]).map(it=> `<div class="detail-line">${escapeHtml(it.label)} <span style="float:right; font-weight:700">${it.pts>=0? '+'+it.pts: it.pts}</span></div>`).join('');
+    const reverseLines = (bd.reverse||[]).map(it=> `<div class="detail-line"><span class="reverse-tag">${escapeHtml(it.label)}</span> <span style="float:right; font-weight:700">${it.pts>=0? '+'+it.pts: it.pts}</span></div>`).join('');
+    const showDetails = document.getElementById('debugToggle').checked;
+
     div.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:700">${escapeHtml(h.name)} <span class="small muted">(${h.role})</span></div>
+        <div style="font-weight:700" class="${bannedList.includes(h.name)?'banned':''}">${escapeHtml(h.name)} <span class="small muted">(${h.role})</span>${bannedList.find(b=>norm(b)===norm(h.name))?' <span class="banned">(BANNED)</span>':''}</div>
         <div style="text-align:right">
           <div class="${h.disabled? 'score-neg':'score-pos'}" style="font-size:18px; font-weight:800">${h.disabled? 'REMOVED' : (typeof h.total==='number'?h.total:'0')}</div>
           <div class="small muted">${h.group}</div>
         </div>
       </div>
       <div class="tally">
-        ${ document.getElementById('debugToggle').checked ? forwardLines : '' }
-        <div class="tally-row"><div class="k">Archetype(s)</div><div class="v">${h.macro||'-'}</div></div>
-        <div class="tally-row"><div class="k">Counters</div><div class="v">${(h.counters||[]).join(', ') || '-'}</div></div>
-        <div class="tally-row"><div class="k">Hard counters</div><div class="v">${(h.hard_counters||[]).join(', ') || '-'}</div></div>
-        <div class="tally-row"><div class="k">Soft counters</div><div class="v">${(h.soft_counters||[]).join(', ') || '-'}</div></div>
-        <div class="total-hero"><div>Total Points Tallied</div><div>${h.disabled? 'REMOVED' : (h._details && typeof h._details.total==='number' ? (h._details.total>=0 ? '<span class="score-pos">+'+h._details.total+'</span>' : '<span class="score-neg">'+h._details.total+'</span>') : h.total)}</div></div>
+        ${ showDetails ? forwardLines : '' }
+        ${ showDetails ? `<div class="detail-line" style="border-top:1px dashed rgba(255,255,255,0.03); margin-top:6px; padding-top:6px"><strong class="small muted">Reverse</strong></div>` : '' }
+        ${ showDetails ? reverseLines : '' }
+        <div class="tally-row"><div class="k">Counters (list)</div><div class="v" style="font-weight:600">${(h.counters||[]).join(', ') || '-'}</div></div>
+        <div class="tally-row"><div class="k">Hard counters (list)</div><div class="v">${(h.hard_counters||[]).join(', ') || '-'}</div></div>
+        <div class="tally-row"><div class="k">Soft counters (list)</div><div class="v">${(h.soft_counters||[]).join(', ') || '-'}</div></div>
+        <div class="total-hero"><div>Total Points Tallied</div><div>${h.disabled? 'REMOVED' : (h._details && h._details.total>=0 ? '<span class="score-pos">+'+h._details.total+'</span>' : '<span class="score-neg">'+(h._details? h._details.total : h.total)+'</span>')}</div></div>
       </div>
     `;
     tallyList.appendChild(div);
   });
 
-  // recommendation top 3
-  const dec = decidePick();
-  if(!dec.picks || dec.picks.length === 0){
-    recommendationBox.innerHTML = `<div class="rec-box">No recommendations</div>`;
+  // recommendation (roamer-only). show pick and glow gold if Roamer tab active
+  const pickDecision = decidePick();
+  const recEl = recommendationBox;
+  if(pickDecision.pickIdx === -1) {
+    recEl.innerHTML = `<div class="rec-box">No recommended pick — ${pickDecision.reason}</div>`;
+    recEl.classList.remove('glow');
   } else {
-    const html = dec.picks.map((p, i) => {
-      return `<div class="rec-box" style="${i===0? 'border:1px solid rgba(102,224,179,0.12);' : ''}"><strong style="color:var(--accent)">${i+1}. ${p.name}</strong> — ${p.total} pts<br/><span class="small muted">${p.role} — ${p.macro||'No archetype'}</span></div>`;
-    }).join('');
-    recommendationBox.innerHTML = html;
+    const pick = heroes[pickDecision.pickIdx];
+    const isRoamerTab = (activeTab === 'Roamer');
+    const glowClass = isRoamerTab ? 'rec-box glow' : 'rec-box';
+    recEl.innerHTML = `<div class="${glowClass}" style="${isRoamerTab ? 'border-color: rgba(255,215,0,0.12);' : ''}"><strong style="color:var(--accent)">${pick.name}</strong> — recommended. ${pickDecision.reason}</div>`;
   }
 }
 
 // escape helper
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-// inputs
+// live inputs
 const allyInput = document.getElementById('allyPicks');
 const enemyInput = document.getElementById('enemyPicks');
-const bannedInput = document.getElementById('bannedPicks');
 allyInput.oninput = () => { allyList = parseList(allyInput.value); render(); };
 enemyInput.oninput = () => { enemyList = parseList(enemyInput.value); render(); };
+// banned heroes live list
+const bannedInput = document.getElementById('bannedPicks');
 bannedInput.oninput = () => { bannedList = parseList(bannedInput.value); render(); };
 
-['zone_grass','zone_river','zone_walls','zone_cloud'].forEach(id => {
-  const el = document.getElementById(id);
-  if(el) el.onchange = render;
-});
+// map toggles & other UI (zone listeners removed)
 document.getElementById('filter').oninput = render;
 document.getElementById('debugToggle').onchange = render;
 document.getElementById('clearInputs').onclick = () => {
-  allyInput.value = ''; enemyInput.value = ''; bannedInput.value = '';
-  allyList = []; enemyList = []; bannedList = []; render();
-};
-
-// add / save / load / export
-document.getElementById('addHero').onclick = () => { 
-  heroes.push({
-    name: 'New Hero',
-    role: 'Unknown',
-    group: 'Unknown',
-    macro: '',
-    counters: [],
-    hard_counters: [],
-    soft_counters: [],
-    total: 0,
-    _details: { forward: [], reverse: [], total: 0 }
-  });
+  allyInput.value = '';
+  enemyInput.value = '';
+  bannedInput.value = '';
+  allyList = [];
+  enemyList = [];
+  bannedList = [];
   render();
 };
-document.getElementById('saveLocal').onclick = () => { localStorage.setItem('mlbb_macro_v1', JSON.stringify({heroes, allyList, enemyList, bannedList})); alert('Saved to localStorage.'); };
+
+// save/load/export
+document.getElementById('saveLocal').onclick = () => {
+  localStorage.setItem('mlbb_v6', JSON.stringify({heroes, allyList, enemyList, bannedList}));
+  alert('Saved.');
+};
 document.getElementById('loadLocal').onclick = () => {
-  const raw = localStorage.getItem('mlbb_macro_v1'); if(!raw){ alert('No saved data'); return; }
-  const obj = JSON.parse(raw); heroes = obj.heroes || heroes; allyList = obj.allyList || []; enemyList = obj.enemyList || []; bannedList = obj.bannedList || [];
+  const raw = localStorage.getItem('mlbb_v6');
+  if(!raw){ alert('No saved data'); return; }
+  const obj = JSON.parse(raw);
+  heroes = obj.heroes || heroes; allyList = obj.allyList || []; enemyList = obj.enemyList || []; bannedList = obj.bannedList || [];
   allyInput.value = allyList.join(', '); enemyInput.value = enemyList.join(', '); bannedInput.value = bannedList.join(', ');
   render();
 };
 document.getElementById('exportCsv').onclick = () => {
-  const rows = [['Name','Role','Group','Macro','Counters','HardCounters','SoftCounters','Total','Disabled']];
-  heroes.forEach(h => rows.push([h.name, h.role, h.group, h.macro || '', (h.counters||[]).join(';'), (h.hard_counters||[]).join(';'), (h.soft_counters||[]).join(';'), h.total||0, !!h.disabled]));
+  const rows = [['Name','Role','Group','Archetype','HardCounters','SoftCounters','Counters','Total','Disabled']];
+  heroes.forEach(h=> rows.push([h.name, h.role, h.group, h.archetype||'', (h.hard_counters||[]).join(';'), (h.soft_counters||[]).join(';'), (h.counters||[]).join(';'), h.total||0, !!h.disabled]));
   const csv = rows.map(r=> r.map(c=> `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='mlbb_macro_export.csv'; a.click();
+  const a = document.createElement('a'); a.href=url; a.download='mlbb_v6_export.csv'; a.click();
   URL.revokeObjectURL(url);
 };
+
 // import handler (JSON or CSV)
 document.getElementById('importBackup').onchange = e => {
-  const f = e.target.files[0]; if(!f) return;
-  const r = new FileReader();
-  r.onload = ev => {
-    const txt = ev.target.result.trim();
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const text = ev.target.result.trim();
     try {
-      const data = JSON.parse(txt);
+      // Try JSON first
+      const data = JSON.parse(text);
       heroes = data.heroes || heroes;
-      allyList = data.allyList || []; enemyList = data.enemyList || []; bannedList = data.bannedList || [];
-      allyInput.value = allyList.join(', '); enemyInput.value = enemyList.join(', '); bannedInput.value = bannedList.join(', ');
-      render(); alert('JSON imported.');
+      allyList = data.allyList || [];
+      enemyList = data.enemyList || [];
+      bannedList = data.bannedList || [];
+      allyInput.value = allyList.join(', ');
+      enemyInput.value = enemyList.join(', ');
+      bannedInput.value = bannedList.join(', ');
+      render();
+      alert('Backup imported successfully!');
     } catch {
-      // CSV parse (basic)
-      const lines = txt.split(/\r?\n/).filter(l=>l.trim());
+      // If not JSON, try parsing CSV
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
       const headers = lines.shift().split(',').map(h=>h.replace(/"/g,'').trim());
       heroes = lines.map(line => {
         const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c=>c.replace(/^"|"$/g,''));
-        const obj = {}; headers.forEach((h,i)=> obj[h]=cols[i]);
+        const obj = {};
+        headers.forEach((h,i)=> obj[h.trim()] = cols[i]);
         return {
           name: obj.Name || '',
           role: obj.Role || '',
           group: obj.Group || 'Unknown',
-          macro: obj.Macro || '',
-          counters: (obj.Counters||'').split(';').filter(Boolean),
+          archetype: obj.Archetype || '',
           hard_counters: (obj.HardCounters||'').split(';').filter(Boolean),
-          soft_counters: (obj.SoftCounters||'').split(';').filter(Boolean)
+          soft_counters: (obj.SoftCounters||'').split(';').filter(Boolean),
+          counters: (obj.Counters||'').split(';').filter(Boolean)
         };
       });
-      render(); alert('CSV imported.');
+      render();
+      alert('CSV imported successfully!');
     }
   };
-  r.readAsText(f);
+  reader.readAsText(file);
 };
 
-// Autocomplete for ally/enemy (simple datalist)
-function setupAutocomplete(input){
-  input.addEventListener('input', function(){
-    const last = this.value.split(',').pop().trim().toLowerCase();
-    const match = heroes.filter(h => norm(h.name).startsWith(last)).slice(0,10);
-    this.setAttribute('list', input.id + '_list');
-    let datalist = document.getElementById(input.id + '_list');
-    if(!datalist){ datalist = document.createElement('datalist'); datalist.id = input.id + '_list'; document.body.appendChild(datalist); }
+// --- Autocomplete support ---
+function setupAutocomplete(input) {
+  input.addEventListener("input", function() {
+    const lastWord = this.value.split(',').pop().trim().toLowerCase();
+    const match = heroes.filter(h => h.name.toLowerCase().startsWith(lastWord));
+    this.setAttribute("list", input.id + "_list");
+    const datalist = document.getElementById(input.id + "_list") || document.createElement("datalist");
+    datalist.id = input.id + "_list";
     datalist.innerHTML = match.map(h => `<option value="${h.name}">`).join('');
+    document.body.appendChild(datalist);
   });
 }
-setupAutocomplete(allyInput); setupAutocomplete(enemyInput); setupAutocomplete(bannedInput);
-
+setupAutocomplete(allyInput);
+setupAutocomplete(enemyInput);
+setupAutocomplete(bannedInput);
 // initial render
 render();
 </script>
 </body>
 </html>
+
+
 
 
 
