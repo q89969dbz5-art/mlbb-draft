@@ -297,29 +297,30 @@ function render(){
   // heroes table
   heroesTable.innerHTML = '';
   const visible = heroes.filter(h => roleFilter(h) && (filterText === '' || norm(h.name).includes(filterText)));
-  visible.forEach((h, idx) => {
+  visible.forEach(h => {
+    const i = heroes.indexOf(h); // Step 2: get index in main array
     const tr = document.createElement('tr');
     if(h.disabled) tr.classList.add('removed');
     tr.innerHTML = `
-      <td><input data-idx="${idx}" data-key="name" value="${escapeHtml(h.name)}" style="width:110px"></td>
-      <td><input data-idx="${idx}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
+      <td><input data-idx="${i}" data-key="name" value="${escapeHtml(h.name)}" style="width:110px"></td>
+      <td><input data-idx="${i}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
       <td>
-        <select data-idx="${idx}" data-key="group">
+        <select data-idx="${i}" data-key="group">
           <option ${h.group==='Meta'?'selected':''}>Meta</option>
           <option ${h.group==='Situational'?'selected':''}>Situational</option>
           <option ${h.group==='Playable'?'selected':''}>Playable</option>
           <option ${h.group==='Unknown'?'selected':''}>Unknown</option>
         </select>
       </td>
-      <td><input data-idx="${idx}" data-key="macro" value="${escapeHtml(h.macro||'')}" style="width:140px"></td>
-      <td><input data-idx="${idx}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:120px"></td>
-      <td><input data-idx="${idx}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:120px"></td>
-      <td><input data-idx="${idx}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:120px"></td>
+      <td><input data-idx="${i}" data-key="macro" value="${escapeHtml(h.macro||'')}" style="width:140px"></td>
+      <td><input data-idx="${i}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:120px"></td>
+      <td><input data-idx="${i}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:120px"></td>
+      <td><input data-idx="${i}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:120px"></td>
       <td><strong>${typeof h.total === 'number' ? h.total : '0'}</strong></td>
       <td>
         <div style="display:flex; gap:6px;">
-          <button data-action="dup" data-idx="${idx}" class="ghost">⧉</button>
-          <button data-action="rm" data-idx="${idx}" class="ghost">✖</button>
+          <button data-action="dup" data-idx="${i}" class="ghost">⧉</button>
+          <button data-action="rm" data-idx="${i}" class="ghost">✖</button>
         </div>
       </td>
     `;
@@ -481,4 +482,5 @@ render();
 </script>
 </body>
 </html>
+
 
