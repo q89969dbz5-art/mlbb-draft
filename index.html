@@ -121,6 +121,14 @@
    - Shows top 3 picks
 */
 
+  function norm(s){
+  return String(s||'').trim().toLowerCase();
+}
+
+function normalizeList(list){
+  return (list || []).map(x => norm(x));
+}
+
 // sample heroes (prefill)
 let heroes = [
   {name:'Chip', role:'Tank', group:'Meta', macro:'Teamfight', counters:['Alucard'], hard_counters:['Gatot'], soft_counters:[]},
@@ -200,36 +208,55 @@ function computeTotals(){
   const allyMacro = detectMacroForSide(allyList);
 
   heroes.forEach(h => {
-    h._details = { forward:[], reverse:[], total:0 };
-    if(bannedList.some(b=>norm(b) === norm(h.name))){ h.disabled = true; h._details.forward.push({label:'BANNED', pts:0}); h.total = 0; return; }
-    h.disabled = false;
-    let total = 0;
+  h._details = { forward:[], reverse:[], total:0 };
+  if(bannedList.some(b=>norm(b) === norm(h.name))){ 
+    h.disabled = true; 
+    h._details.forward.push({label:'BANNED', pts:0}); 
+    h.total = 0; 
+    return; 
+  }
+  h.disabled = false;
+  let total = 0;
 
-    // For each enemy pick:
-    enemyList.forEach(en => {
-      const enNorm = norm(en);
-      // if hero counters enemy directly (hero.counters contains enemy)
-      if(Array.isArray(h.counters) && h.counters.find(x=>norm(x) === enNorm)){
-        total += SCORES.heroCountersEnemy;
-        h._details.forward.push({label:`Counters ${en}`, pts: SCORES.heroCountersEnemy});
-      }
-      // hero soft counters enemy (soft_counters field)
-      if(Array.isArray(h.soft_counters) && h.soft_counters.find(x=>norm(x) === enNorm)){
-        total += SCORES.heroSoftCountersEnemy;
-        h._details.forward.push({label:`SoftCounters ${en}`, pts: SCORES.heroSoftCountersEnemy});
-      }
-      // if enemy hard-counters hero (enemy's counters includes this hero)
-      const enHero = nameMap[enNorm];
-      if(enHero && Array.isArray(enHero.counters) && enHero.counters.find(x=>norm(x) === norm(h.name))){
-        total += SCORES.enemyHardCounter;
-        h._details.forward.push({label:`Hard-countered-by ${en}`, pts: SCORES.enemyHardCounter});
-      }
-      // static: enemy soft-counters this hero (enemy.soft_counters)
-      if(enHero && Array.isArray(enHero.soft_counters) && enHero.soft_counters.find(x=>norm(x) === norm(h.name))){
-        total += SCORES.enemySoftCounter;
-        h._details.forward.push({label:`Soft-countered-by ${en}`, pts: SCORES.enemySoftCounter});
-      }
-    });
+  const heroCounters = normalizeList(h.counters);
+  const heroSoftCounters = normalizeList(h.soft_counters);
+  const heroHardCounters = normalizeList(h.hard_counters); // optional
+
+  enemyList.forEach(en => {
+    const enHero = heroes.find(x => norm(x.name) === norm(en));
+    if(!enHero) return;
+
+    const enemyHard = normalizeList(enHero.hard_counters);
+    const enemySoft = normalizeList(enHero.soft_counters);
+
+    // If hero counters enemy directly
+    if(heroCounters.includes(norm(en))){
+      total += SCORES.heroCountersEnemy;
+      h._details.forward.push({label:`Counters ${en}`, pts: SCORES.heroCountersEnemy});
+    }
+
+    // If hero soft-counters enemy
+    if(heroSoftCounters.includes(norm(en))){
+      total += SCORES.heroSoftCountersEnemy;
+      h._details.forward.push({label:`SoftCounters ${en}`, pts: SCORES.heroSoftCountersEnemy});
+    }
+
+    // If enemy hard-counters this hero
+    if(enemyHard.includes(norm(h.name))){
+      total += SCORES.enemyHardCounter;
+      h._details.forward.push({label:`Hard-countered-by ${en}`, pts: SCORES.enemyHardCounter});
+    }
+
+    // If enemy soft-counters this hero
+    if(enemySoft.includes(norm(h.name))){
+      total += SCORES.enemySoftCounter;
+      h._details.forward.push({label:`Soft-countered-by ${en}`, pts: SCORES.enemySoftCounter});
+    }
+  });
+
+  h.total = total;
+  h._details.total = total;
+});
 
     // Macro interactions: if hero macro beats enemy macro => macroAdvantage
     const heroMacros = splitMacros(h.macro || '');
@@ -333,12 +360,12 @@ function render(){
     const key = el.dataset.key;
     if(el.tagName === 'INPUT' && el.type === 'text'){
       el.onblur = e => {
-        const val = e.target.value;
-        if(key === 'name') heroes[idx].name = val;
-        else if(key === 'macro') heroes[idx].macro = val;
-        else heroes[idx][key] = val.split(',').map(s=>s.trim()).filter(Boolean);
-        render();
-      };
+  const val = e.target.value;
+  if(key === 'name') heroes[idx].name = val.trim();
+  else if(key === 'macro') heroes[idx].macro = val.trim();
+  else heroes[idx][key] = val.split(',').map(s => norm(s)); // normalize array values
+  render();
+};
     } else if(el.tagName === 'SELECT'){
       el.onchange = e => { heroes[idx][key] = e.target.value; render(); };
     } else if(el.tagName === 'BUTTON'){
@@ -412,7 +439,20 @@ document.getElementById('clearInputs').onclick = () => {
 };
 
 // add / save / load / export
-document.getElementById('addHero').onclick = () => { heroes.push({name:'New Hero', role:'Unknown', group:'Unknown', macro:'', counters:[], hard_counters:[], soft_counters:[]}); render(); };
+document.getElementById('addHero').onclick = () => { 
+  heroes.push({
+    name: 'New Hero',
+    role: 'Unknown',
+    group: 'Unknown',
+    macro: '',
+    counters: [],
+    hard_counters: [],
+    soft_counters: [],
+    total: 0,
+    _details: { forward: [], reverse: [], total: 0 }
+  });
+  render();
+};
 document.getElementById('saveLocal').onclick = () => { localStorage.setItem('mlbb_macro_v1', JSON.stringify({heroes, allyList, enemyList, bannedList})); alert('Saved to localStorage.'); };
 document.getElementById('loadLocal').onclick = () => {
   const raw = localStorage.getItem('mlbb_macro_v1'); if(!raw){ alert('No saved data'); return; }
@@ -482,6 +522,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
