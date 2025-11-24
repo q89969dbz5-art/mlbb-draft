@@ -187,7 +187,10 @@ const extraRoamers = ['chou','badang','khaleed','kaja'];
 
   function isRoamerHero(h){
   const r = h.role.toLowerCase();
-  return r === "tank" || r === "support";
+  const n = norm(h.name);
+
+  // Tank or Support OR inside extraRoamers list
+  return r === "tank" || r === "support" || extraRoamers.includes(n);
 }
 
 let allyList = [], enemyList = [];
@@ -579,6 +582,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
