@@ -370,10 +370,11 @@ function render(){
       <td><input data-idx="${idx}" data-key="name" value="${escapeHtml(h.name)}" style="width:120px"></td>
       <td><input data-idx="${idx}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
       <td>
-       <input data-idx="${idx}" data-key="archetype" 
-       value="${h.archetype}" 
-       placeholder="Pick-off, Teamfight" />
-      </td>
+  <input data-idx="${idx}" data-key="archetype" 
+         value="${h.archetype}" 
+         placeholder="Pick-off, Teamfight, Split Push/Cover"
+         oninput="heroes[${idx}].archetype = this.value" />
+</td>
       <td><input data-idx="${idx}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:140px"></td>
       <td><input data-idx="${idx}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:140px"></td>
       <td><input data-idx="${idx}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:140px"></td>
@@ -582,6 +583,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
