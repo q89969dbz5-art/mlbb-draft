@@ -186,10 +186,8 @@ let activeTab = 'All';
 const extraRoamers = ['chou','badang','khaleed','kaja'];
 
   function isRoamerHero(h){
-  // normalize the name
-  const n = norm(h.name);
-  // check if this hero is in the extraRoamers list
-  return extraRoamers.includes(n);
+  const r = h.role.toLowerCase();
+  return r === "tank" || r === "support";
 }
 
 let allyList = [], enemyList = [];
@@ -581,6 +579,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
