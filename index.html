@@ -183,7 +183,7 @@ let heroes = [
 
 const ROLE_TABS = ['All','Tank','Assassin','Fighter','Mage','Marksman','Support','Roamer'];
 let activeTab = 'All';
-const extraRoamers = ['chou','badang','khaleed','kaja'];
+const extraRoamers = ['chou','badang','khaleed','kaja', 'jawhead'];
 
   function isRoamerHero(h){
   const r = h.role.toLowerCase();
@@ -252,8 +252,8 @@ function computeTotals(){
         h._details.forward.push({label:`Counters (hard) ${en}`, pts:-4});
       } else if(h.counters.find(c => norm(c) === enNorm)){
         // counters[] treated as softer positive
-        h.total -= 1;
-        h._details.forward.push({label:`Counters ${en}`, pts:-1});
+        h.total += 1;
+        h._details.forward.push({label:`Counters ${en}`, pts:1});
       }
 
       // If this hero soft-counters that enemy (soft_counters)
@@ -583,6 +583,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
