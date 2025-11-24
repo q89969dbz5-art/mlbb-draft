@@ -248,31 +248,31 @@ function computeTotals(){
       const enNorm = norm(en);
       // If this hero directly counters that enemy (hard)
       if(h.hard_counters.find(c=> norm(c) === enNorm)){
-        h.total += 3;
-        h._details.forward.push({label:`Counters (hard) ${en}`, pts:+3});
+        h.total -= 4;
+        h._details.forward.push({label:`Counters (hard) ${en}`, pts:-4});
       } else if(h.counters.find(c => norm(c) === enNorm)){
         // counters[] treated as softer positive
-        h.total += 1;
-        h._details.forward.push({label:`Counters ${en}`, pts:+1});
+        h.total -= 1;
+        h._details.forward.push({label:`Counters ${en}`, pts:-1});
       }
 
       // If this hero soft-counters that enemy (soft_counters)
       if(h.soft_counters.find(c => norm(c) === enNorm)){
-        h.total += 2;
-        h._details.forward.push({label:`SoftCounters ${en}`, pts:+1});
+        h.total -= 2;
+        h._details.forward.push({label:`SoftCounters ${en}`, pts:-2});
       }
 
       // If enemy counters this hero (enemy.hard_counters includes this hero) => penalty -4
       const enHero = nameMap[enNorm];
       if(enHero){
         if(Array.isArray(enHero.hard_counters) && enHero.hard_counters.find(x => norm(x) === heroNameNorm)){
-          h.total += -4;
-          h._details.forward.push({label:`Hard-countered-by ${en}`, pts:-4});
+          h.total += 4;
+          h._details.forward.push({label:`Hard-countered-by ${en}`, pts:4});
         }
         // enemy soft counters this hero => -2
         if(Array.isArray(enHero.soft_counters) && enHero.soft_counters.find(x => norm(x) === heroNameNorm)){
-          h.total += -2;
-          h._details.forward.push({label:`Soft-countered-by ${en}`, pts:-2});
+          h.total += 2;
+          h._details.forward.push({label:`Soft-countered-by ${en}`, pts:2});
         }
       }
     });
@@ -582,6 +582,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
