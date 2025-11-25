@@ -366,25 +366,16 @@ function render(){
   const filterText = (document.getElementById('filter').value||'').trim().toLowerCase();
   const dec = computeTotals();
 
-  const r = roamer.archetype.toLowerCase();
-  if (r.includes("team")) return "teamfight";
-  if (r.includes("pick")) return "pick-off";
-  if (r.includes("split")) return "split";
-
-  return top[0][0];
-}
-
   // --- Team Composition Indicator ---
-const dec = computeTotals();
-const compBox = document.getElementById("compDisplay");
-if (compBox) {
-  compBox.innerHTML = `
-    Ally: <strong>${dec.allyComp ? dec.allyComp : "—"}</strong><br>
-    Enemy: <strong>${dec.enemyComp ? dec.enemyComp : "—"}</strong>
-  `;
-}
+  const compBox = document.getElementById("compDisplay");
+  if (compBox) {
+    compBox.innerHTML = `
+      Ally: <strong>${dec.allyComp ? dec.allyComp : "—"}</strong><br>
+      Enemy: <strong>${dec.enemyComp ? dec.enemyComp : "—"}</strong>
+    `;
+  }
 
-  // left table
+  // --- Left Table ---
   heroesTable.innerHTML = '';
   const visible = heroes.filter(h => roleFilter(h) && (filterText === '' || norm(h.name).includes(filterText)));
   visible.forEach(h => {
@@ -392,24 +383,18 @@ if (compBox) {
     const tr = document.createElement('tr');
     if(h.disabled) tr.classList.add('removed');
 
-    const maps = (h.maps||[]).join(', ');
-    const countered = (h.countered_by||[]).join(', ');
-    const compatRaw = Array.isArray(h.compatible) ? h.compatible.join(', ') : (h.compatible||'');
-    const counters = (h.counters||[]).join(', ');
-
     tr.innerHTML = `
       <td><input data-idx="${idx}" data-key="name" value="${escapeHtml(h.name)}" style="width:120px"></td>
       <td><input data-idx="${idx}" data-key="role" value="${escapeHtml(h.role)}" style="width:80px"></td>
       <td>
-  <input data-idx="${idx}" data-key="archetype" 
-         value="${h.archetype}" 
-         placeholder="Pick-off, Teamfight, Split Push/Cover"
-         oninput="heroes[${idx}].archetype = this.value" />
-</td>
+        <input data-idx="${idx}" data-key="archetype" value="${h.archetype || ''}" 
+          placeholder="Pick-off, Teamfight, Split Push/Cover" 
+          oninput="heroes[${idx}].archetype=this.value"/>
+      </td>
       <td><input data-idx="${idx}" data-key="hard_counters" value="${(h.hard_counters||[]).join(', ')}" style="width:140px"></td>
       <td><input data-idx="${idx}" data-key="soft_counters" value="${(h.soft_counters||[]).join(', ')}" style="width:140px"></td>
       <td><input data-idx="${idx}" data-key="counters" value="${(h.counters||[]).join(', ')}" style="width:140px"></td>
-      <td><strong>${h.disabled? 'REMOVED' : (typeof h.total==='number' ? h.total : '0')}</strong></td>
+      <td><strong>${h.disabled ? 'REMOVED' : (typeof h.total==='number' ? h.total : 0)}</strong></td>
       <td>
         <div style="display:flex; gap:6px;">
           <button data-action="dup" data-idx="${idx}" class="ghost">⧉</button>
@@ -420,87 +405,73 @@ if (compBox) {
     heroesTable.appendChild(tr);
   });
 
-  // attach listeners in table
-  heroesTable.querySelectorAll('input,select,button').forEach(el=>{
-    const idx = el.dataset.idx; if(typeof idx === 'undefined') return;
+  // --- Attach table listeners ---
+  heroesTable.querySelectorAll('input,button').forEach(el=>{
+    const idx = el.dataset.idx; if(typeof idx==='undefined') return;
     const key = el.dataset.key;
-    if(el.tagName === 'INPUT' && el.type === 'text'){
+    if(el.tagName==='INPUT'){
       el.onblur = e => {
         const val = e.target.value;
-        if(key === 'name') heroes[idx].name = val.trim();
-        else if(key === 'hard_counters' || key === 'soft_counters' || key === 'counters'){
+        if(key==='name') heroes[idx].name = val.trim();
+        else if(['hard_counters','soft_counters','counters'].includes(key)) 
           heroes[idx][key] = val.split(',').map(s=>s.trim()).filter(Boolean);
-        } else if(key === 'role'){
-          heroes[idx].role = val.trim();
-        }
+        else if(key==='role') heroes[idx].role = val.trim();
         render();
       };
-    } else if(el.tagName === 'SELECT'){
-      el.onchange = e => {
-        const val = e.target.value;
-        if(key === 'group') heroes[idx].group = val;
-        else if(key === 'archetype') heroes[idx].archetype = val;
-        render();
-      };
-    } else if(el.tagName === 'BUTTON'){
+    } else if(el.tagName==='BUTTON'){
       el.onclick = e => {
-        const act = e.target.dataset.action;
-        const i = Number(e.target.dataset.idx);
-        if(act === 'rm'){ heroes.splice(i,1); render(); }
-        if(act === 'dup'){ heroes.splice(i+1,0, JSON.parse(JSON.stringify(heroes[i]))); render(); }
+        const act = e.target.dataset.action; const i=Number(e.target.dataset.idx);
+        if(act==='rm'){ heroes.splice(i,1); render(); }
+        if(act==='dup'){ heroes.splice(i+1,0,JSON.parse(JSON.stringify(heroes[i]))); render(); }
       };
     }
   });
 
-  // right tally list
+  // --- Right Tally List ---
   tallyList.innerHTML = '';
   const visibleForTally = heroes.filter(h => roleFilter(h)).sort((a,b)=> (b.total||0) - (a.total||0));
   visibleForTally.forEach(h=>{
     const bd = h._details || {forward:[], reverse:[], total:h.total||0};
-    const div = document.createElement('div'); div.style.marginBottom='10px'; div.style.borderBottom='1px solid rgba(255,255,255,0.03)';
-    const parsed = {compat:[], uncompat:[]}; // compat removed; keep simple structure
-    const cp = '';
-    const up = '';
-    const compatDisplay = '';
-
+    const showDetails = document.getElementById('debugToggle').checked;
     const forwardLines = (bd.forward||[]).map(it=> `<div class="detail-line">${escapeHtml(it.label)} <span style="float:right; font-weight:700">${it.pts>=0? '+'+it.pts: it.pts}</span></div>`).join('');
     const reverseLines = (bd.reverse||[]).map(it=> `<div class="detail-line"><span class="reverse-tag">${escapeHtml(it.label)}</span> <span style="float:right; font-weight:700">${it.pts>=0? '+'+it.pts: it.pts}</span></div>`).join('');
-    const showDetails = document.getElementById('debugToggle').checked;
 
+    const div = document.createElement('div'); 
+    div.style.marginBottom='10px'; 
+    div.style.borderBottom='1px solid rgba(255,255,255,0.03)';
     div.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <div style="font-weight:700" class="${bannedList.includes(h.name)?'banned':''}">${escapeHtml(h.name)} <span class="small muted">(${h.role})</span>${bannedList.find(b=>norm(b)===norm(h.name))?' <span class="banned">(BANNED)</span>':''}</div>
+        <div style="font-weight:700" class="${bannedList.includes(h.name)?'banned':''}">${escapeHtml(h.name)} <span class="small muted">(${h.role})</span></div>
         <div style="text-align:right">
-          <div class="${h.disabled? 'score-neg':'score-pos'}" style="font-size:18px; font-weight:800">${h.disabled? 'REMOVED' : (typeof h.total==='number'?h.total:'0')}</div>
+          <div class="${h.disabled?'score-neg':'score-pos'}" style="font-size:18px; font-weight:800">${h.disabled?'REMOVED': (typeof h.total==='number'?h.total:'0')}</div>
           <div class="small muted">${h.group}</div>
         </div>
       </div>
       <div class="tally">
-        ${ showDetails ? forwardLines : '' }
-        ${ showDetails ? `<div class="detail-line" style="border-top:1px dashed rgba(255,255,255,0.03); margin-top:6px; padding-top:6px"><strong class="small muted">Reverse</strong></div>` : '' }
-        ${ showDetails ? reverseLines : '' }
-        <div class="tally-row"><div class="k">Counters (list)</div><div class="v" style="font-weight:600">${(h.counters||[]).join(', ') || '-'}</div></div>
-        <div class="tally-row"><div class="k">Hard counters (list)</div><div class="v">${(h.hard_counters||[]).join(', ') || '-'}</div></div>
-        <div class="tally-row"><div class="k">Soft counters (list)</div><div class="v">${(h.soft_counters||[]).join(', ') || '-'}</div></div>
-        <div class="total-hero"><div>Total Points Tallied</div><div>${h.disabled? 'REMOVED' : (h._details && h._details.total>=0 ? '<span class="score-pos">+'+h._details.total+'</span>' : '<span class="score-neg">'+(h._details? h._details.total : h.total)+'</span>')}</div></div>
+        ${showDetails? forwardLines : '' }
+        ${showDetails? `<div class="detail-line" style="border-top:1px dashed rgba(255,255,255,0.03); margin-top:6px; padding-top:6px"><strong class="small muted">Reverse</strong></div>` : ''}
+        ${showDetails? reverseLines : ''}
+        <div class="tally-row"><div class="k">Counters</div><div class="v">${(h.counters||[]).join(', ') || '-'}</div></div>
+        <div class="tally-row"><div class="k">Hard counters</div><div class="v">${(h.hard_counters||[]).join(', ') || '-'}</div></div>
+        <div class="tally-row"><div class="k">Soft counters</div><div class="v">${(h.soft_counters||[]).join(', ') || '-'}</div></div>
+        <div class="total-hero"><div>Total Points</div><div>${h.disabled? 'REMOVED' : (bd.total>=0 ? '<span class="score-pos">+'+bd.total+'</span>' : '<span class="score-neg">'+bd.total+'</span>')}</div></div>
       </div>
     `;
     tallyList.appendChild(div);
   });
 
-  // recommendation (roamer-only). show pick and glow gold if Roamer tab active
+  // --- Recommendation (Roamer Only) ---
   const pickDecision = decidePick();
-  const recEl = recommendationBox;
-  if(pickDecision.pickIdx === -1) {
-    recEl.innerHTML = `<div class="rec-box">No recommended pick — ${pickDecision.reason}</div>`;
-    recEl.classList.remove('glow');
+  if(pickDecision.pickIdx === -1){
+    recommendationBox.innerHTML = `<div class="rec-box">No recommended pick — ${pickDecision.reason}</div>`;
+    recommendationBox.classList.remove('glow');
   } else {
     const pick = heroes[pickDecision.pickIdx];
-    const isRoamerTab = (activeTab === 'Roamer');
-    const glowClass = isRoamerTab ? 'rec-box glow' : 'rec-box';
-    recEl.innerHTML = `<div class="${glowClass}" style="${isRoamerTab ? 'border-color: rgba(255,215,0,0.12);' : ''}"><strong style="color:var(--accent)">${pick.name}</strong> — recommended. ${pickDecision.reason}</div>`;
+    const glowClass = (activeTab==='Roamer') ? 'rec-box glow' : 'rec-box';
+    recommendationBox.innerHTML = `<div class="${glowClass}"><strong style="color:var(--accent)">${pick.name}</strong> — recommended. ${pickDecision.reason}</div>`;
   }
 }
+
 
 // escape helper
 function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -614,6 +585,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
