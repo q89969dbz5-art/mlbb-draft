@@ -89,6 +89,13 @@
   <div class="card">
     <div class="tabs" id="roleTabs"></div>
     <div class="controls" style="margin-top:6px; align-items:center;">
+      <div class="card" id="compCard" style="margin-top:12px; padding:10px;">
+  <h3 style="margin:0 0 6px;">Team Composition</h3>
+  <div id="compDisplay" class="small muted">
+    Ally: — <br>
+    Enemy: —
+  </div>
+</div>
       <div style="min-width:300px">
         <label class="small">Ally picks (live)</label><br/>
         <input id="allyPicks" type="text" placeholder="e.g. Tigreal, Angela, Brody" style="width:100%">
@@ -225,8 +232,8 @@ function determineComposition(list){
 
 function computeTotals(){
   const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
-  const enemyComposition = determineComposition(enemyList);
-  const allyComposition = determineComposition(allyList);
+  const enemyComp = determineTeamArchetype(enemyList);
+const allyComp = determineTeamArchetype(allyList);
 
   heroes.forEach(h => {
     h._details = { forward:[], reverse:[], total:0 };
@@ -279,16 +286,16 @@ function computeTotals(){
 
     // Archetype interactions (triangle)
     const myArc = (h.archetype || '').toString().trim().toLowerCase();
-    if(enemyComposition && myArc){
+    if(enemyComp && myArc){
       // If my archetype COUNTERS the enemy composition => +1
-      if(archetypeTriangle[myArc] === enemyComposition){
-        h.total += 1;
-        h._details.forward.push({label:`Archetype adv vs ${enemyComposition}`, pts:+1});
+      if(archetypeTriangle[myArc] === enemyComp){
+        h.total += 2;
+        h._details.forward.push({label:`Archetype adv vs ${enemyComp}`, pts:+2});
       }
       // If enemy composition counters my archetype => -1
-      if(archetypeTriangle[enemyComposition] === myArc){
-        h.total += -1;
-        h._details.forward.push({label:`Archetype disadv vs ${enemyComposition}`, pts:-1});
+      if(archetypeTriangle[enemyComp] === myArc){
+        h.total += -2;
+        h._details.forward.push({label:`Archetype disadv vs ${enemyComp}`, pts:-2});
       }
     }
 
@@ -310,7 +317,7 @@ function computeTotals(){
     });
   });
 
-  return { enemyComposition, allyComposition };
+  return { enemyComp, allyComp };
 }
 
 // decision logic: picks from roamer-eligible heroes only
@@ -352,6 +359,54 @@ function roleFilter(h){
 function render(){
   const filterText = (document.getElementById('filter').value||'').trim().toLowerCase();
   const dec = computeTotals();
+
+  function determineTeamArchetype(teamHeroes) {
+  // Count archetypes
+  let count = { tf: 0, po: 0, sp: 0 };
+
+  teamHeroes.forEach(h => {
+    if (!h.archetype) return;
+    const a = h.archetype.toLowerCase();
+    if (a.includes("team")) count.tf++;
+    else if (a.includes("pick")) count.po++;
+    else if (a.includes("split")) count.sp++;
+  });
+
+  // Find the highest
+  const max = Math.max(count.tf, count.po, count.sp);
+  const top = [
+    ["teamfight", count.tf],
+    ["pick-off", count.po],
+    ["split", count.sp]
+  ].filter(x => x[1] === max);
+
+  // If no tie → return directly
+  if (top.length === 1) return top[0][0];
+
+  // TIE CASE → Use ONLY the roamer
+  const roamer = teamHeroes.find(h => h.role && h.role.toLowerCase() === "roamer");
+
+  if (!roamer || !roamer.archetype) {
+    // If no roamer archetype given, just return the first tied archetype
+    return top[0][0];
+  }
+
+  const r = roamer.archetype.toLowerCase();
+  if (r.includes("team")) return "teamfight";
+  if (r.includes("pick")) return "pick-off";
+  if (r.includes("split")) return "split";
+
+  return top[0][0];
+}
+
+  // --- Team Composition Indicator ---
+const compBox = document.getElementById("compDisplay");
+if (compBox) {
+  compBox.innerHTML = `
+    Ally: <strong>${dec.allyComp ? dec.allyComp : "—"}</strong><br>
+    Enemy: <strong>${dec.enemyComp ? dec.enemyComp : "—"}</strong>
+  `;
+}
 
   // left table
   heroesTable.innerHTML = '';
@@ -583,6 +638,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
