@@ -223,11 +223,21 @@ function determineComposition(list){
     if(!a) return;
     counts[a] = (counts[a] || 0) + 1;
   });
-  // composition is any archetype with 2 or more heroes
-  for(const k of Object.keys(counts)){
-    if(counts[k] >= 2) return k;
-  }
-  return null;
+
+  const maxCount = Math.max(...Object.values(counts), 0);
+  if(maxCount === 0) return null; // no archetypes found
+
+  // get all archetypes that have the max count
+  const topArchetypes = Object.keys(counts).filter(k => counts[k] === maxCount);
+
+  // if only one → return as string, if multiple → join with &
+  return topArchetypes.length === 1 ? topArchetypes[0] : topArchetypes.map(x=>capitalizeArchetype(x)).join(' & ');
+}
+
+// helper to capitalize first letters nicely
+function capitalizeArchetype(str){
+  if(!str) return '';
+  return str.split(' ').map(w=> w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
 function computeTotals(){
@@ -554,6 +564,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
