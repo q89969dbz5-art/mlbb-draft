@@ -230,37 +230,6 @@ function determineComposition(list){
   return null;
 }
 
-  function determineTeamArchetype(teamHeroes) {
-  // Count archetypes
-  let count = { tf: 0, po: 0, sp: 0 };
-
-  teamHeroes.forEach(h => {
-    if (!h.archetype) return;
-    const a = h.archetype.toLowerCase();
-    if (a.includes("team")) count.tf++;
-    else if (a.includes("pick")) count.po++;
-    else if (a.includes("split")) count.sp++;
-  });
-
-  // Find the highest
-  const max = Math.max(count.tf, count.po, count.sp);
-  const top = [
-    ["teamfight", count.tf],
-    ["pick-off", count.po],
-    ["split", count.sp]
-  ].filter(x => x[1] === max);
-
-  // If no tie → return directly
-  if (top.length === 1) return top[0][0];
-
-  // TIE CASE → Use ONLY the roamer
-  const roamer = teamHeroes.find(h => h.role && h.role.toLowerCase() === "roamer");
-
-  if (!roamer || !roamer.archetype) {
-    // If no roamer archetype given, just return the first tied archetype
-    return top[0][0];
-  }
-
 function computeTotals(){
   const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
 
@@ -585,6 +554,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
