@@ -263,85 +263,59 @@ function determineComposition(list){
 
 function computeTotals(){
   const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
-  const enemyComp = determineTeamArchetype(enemyList);
-const allyComp = determineTeamArchetype(allyList);
+
+  // ✅ Use the existing helper that works with name lists
+  const enemyComp = determineComposition(enemyList);
+  const allyComp = determineComposition(allyList);
 
   heroes.forEach(h => {
     h._details = { forward:[], reverse:[], total:0 };
-    h.disabled = !!(Array.isArray(bannedList) && bannedList.find(b => norm(b) === norm(h.name)));
+    h.disabled = bannedList.some(b => norm(b) === norm(h.name));
     h.total = 0;
-  });
 
-  // Forward pass: counters hero defines (hero.counters / hero.hard_counters / hero.soft_counters)
-  heroes.forEach(h => {
-    if(h.disabled) return;
-    // ensure arrays exist
+    // Ensure arrays exist
     h.counters = Array.isArray(h.counters) ? h.counters : [];
     h.hard_counters = Array.isArray(h.hard_counters) ? h.hard_counters : [];
     h.soft_counters = Array.isArray(h.soft_counters) ? h.soft_counters : [];
+  });
+
+  // Forward pass: calculate scoring
+  heroes.forEach(h => {
+    if(h.disabled) return;
     const heroNameNorm = norm(h.name);
 
-    // For each enemy pick
     enemyList.forEach(en => {
       const enNorm = norm(en);
-      // If this hero directly counters that enemy (hard)
-      if(h.hard_counters.find(c=> norm(c) === enNorm)){
-        h.total -= 4;
-        h._details.forward.push({label:`Counters (hard) ${en}`, pts:-4});
-      } else if(h.counters.find(c => norm(c) === enNorm)){
-        // counters[] treated as softer positive
-        h.total += 1;
-        h._details.forward.push({label:`Counters ${en}`, pts:1});
-      }
-
-      // If this hero soft-counters that enemy (soft_counters)
-      if(h.soft_counters.find(c => norm(c) === enNorm)){
-        h.total -= 2;
-        h._details.forward.push({label:`SoftCounters ${en}`, pts:-2});
-      }
-
-      // If enemy counters this hero (enemy.hard_counters includes this hero) => penalty -4
       const enHero = nameMap[enNorm];
+
+      // Direct counters
+      if(h.hard_counters.includes(en)) { h.total -= 4; h._details.forward.push({label:`Counters (hard) ${en}`, pts:-4}); }
+      else if(h.counters.includes(en)) { h.total += 1; h._details.forward.push({label:`Counters ${en}`, pts:1}); }
+      if(h.soft_counters.includes(en)) { h.total -= 2; h._details.forward.push({label:`SoftCounters ${en}`, pts:-2}); }
+
       if(enHero){
-        if(Array.isArray(enHero.hard_counters) && enHero.hard_counters.find(x => norm(x) === heroNameNorm)){
-          h.total += 4;
-          h._details.forward.push({label:`Hard-countered-by ${en}`, pts:4});
-        }
-        // enemy soft counters this hero => -2
-        if(Array.isArray(enHero.soft_counters) && enHero.soft_counters.find(x => norm(x) === heroNameNorm)){
-          h.total += 2;
-          h._details.forward.push({label:`Soft-countered-by ${en}`, pts:2});
-        }
+        if(enHero.hard_counters.includes(h.name)) { h.total += 4; h._details.forward.push({label:`Hard-countered-by ${en}`, pts:4}); }
+        if(enHero.soft_counters.includes(h.name)) { h.total += 2; h._details.forward.push({label:`Soft-countered-by ${en}`, pts:2}); }
       }
     });
 
-    // Archetype interactions (triangle)
-    const myArc = (h.archetype || '').toString().trim().toLowerCase();
+    // Archetype interactions
+    const myArc = (h.archetype || '').toLowerCase();
     if(enemyComp && myArc){
-      // If my archetype COUNTERS the enemy composition => +1
-      if(archetypeTriangle[myArc] === enemyComp){
-        h.total += 2;
-        h._details.forward.push({label:`Archetype adv vs ${enemyComp}`, pts:+2});
-      }
-      // If enemy composition counters my archetype => -1
-      if(archetypeTriangle[enemyComp] === myArc){
-        h.total += -2;
-        h._details.forward.push({label:`Archetype disadv vs ${enemyComp}`, pts:-2});
-      }
+      if(archetypeTriangle[myArc] === enemyComp){ h.total += 2; h._details.forward.push({label:`Archetype adv vs ${enemyComp}`, pts:+2}); }
+      if(archetypeTriangle[enemyComp] === myArc){ h.total -= 2; h._details.forward.push({label:`Archetype disadv vs ${enemyComp}`, pts:-2}); }
     }
 
     h._details.total = h.total;
   });
 
-  // Reverse pass: enemy picks give reverse effects for heroes that are listed as counters on enemy heroes
+  // Reverse pass: enemy counters
   enemyList.forEach(en => {
     const enHero = nameMap[norm(en)];
     if(!enHero) return;
     (enHero.counters || []).forEach(targetName => {
       const target = nameMap[norm(targetName)];
       if(!target || target.disabled) return;
-      target._details.reverse = target._details.reverse || [];
-      // enemy lists target in their counters -> target gets a reverse negative (treated as -3)
       target._details.reverse.push({label:`Rev Counter (enemy ${en})`, pts:-3});
       target.total += -3;
       target._details.total = target.total;
@@ -350,6 +324,7 @@ const allyComp = determineTeamArchetype(allyList);
 
   return { enemyComp, allyComp };
 }
+
 
 // decision logic: picks from roamer-eligible heroes only
 function decidePick(){
@@ -400,6 +375,7 @@ function render(){
 }
 
   // --- Team Composition Indicator ---
+const dec = computeTotals();
 const compBox = document.getElementById("compDisplay");
 if (compBox) {
   compBox.innerHTML = `
@@ -638,6 +614,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
