@@ -216,28 +216,37 @@ const archetypeTriangle = {
 
 function determineComposition(list){
   const counts = {};
+
   list.forEach(name => {
     const h = heroes.find(x => norm(x.name) === norm(name));
     if(!h) return;
-    const a = (h.archetype || '').toString().trim().toLowerCase();
+
+    let a = (h.archetype || '').toString().trim().toLowerCase();
     if(!a) return;
+
     counts[a] = (counts[a] || 0) + 1;
   });
 
-  const maxCount = Math.max(...Object.values(counts), 0);
-  if(maxCount === 0) return null; // no archetypes found
+  const values = Object.values(counts);
+  if(values.length === 0) return null;
 
-  // get all archetypes that have the max count
-  const topArchetypes = Object.keys(counts).filter(k => counts[k] === maxCount);
+  const maxCount = Math.max(...values);
 
-  // if only one → return as string, if multiple → join with &
-  return topArchetypes.length === 1 ? topArchetypes[0] : topArchetypes.map(x=>capitalizeArchetype(x)).join(' & ');
+  // Get all archetypes tied for max count (unique)
+  const topArchetypes = [...new Set(
+    Object.keys(counts).filter(k => counts[k] === maxCount)
+  )];
+
+  // Format output
+  if(topArchetypes.length === 1){
+    return formatArchetype(topArchetypes[0]);
+  }
+
+  return topArchetypes.map(formatArchetype).join(" & ");
 }
 
-// helper to capitalize first letters nicely
-function capitalizeArchetype(str){
-  if(!str) return '';
-  return str.split(' ').map(w=> w[0].toUpperCase() + w.slice(1)).join(' ');
+function formatArchetype(str){
+  return str.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
 }
 
 function computeTotals(){
@@ -564,6 +573,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
