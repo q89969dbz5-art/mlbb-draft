@@ -214,9 +214,8 @@ const archetypeTriangle = {
   'split push/cover': 'teamfight'   // split COUNTERS teamfight
 };
 
-function determineComposition(list, forEnemy=false){
+function determineComposition(list){
   const counts = {};
-  const roamerArchetypes = [];
 
   list.forEach(name => {
     const h = heroes.find(x => norm(x.name) === norm(name));
@@ -226,36 +225,36 @@ function determineComposition(list, forEnemy=false){
     if(!a) return;
 
     counts[a] = (counts[a] || 0) + 1;
-
-    if(forEnemy && isRoamerHero(h)) roamerArchetypes.push(a);
   });
 
   const values = Object.values(counts);
   if(values.length === 0) return null;
 
   const maxCount = Math.max(...values);
-  const topArchetypes = Object.keys(counts).filter(k => counts[k] === maxCount);
 
+  // Get all archetypes tied for max count (unique)
+  const topArchetypes = [...new Set(
+    Object.keys(counts).filter(k => counts[k] === maxCount)
+  )];
+
+  // Format output
   if(topArchetypes.length === 1){
     return formatArchetype(topArchetypes[0]);
   }
 
-  // Tie-breaker rule
-  if(forEnemy && roamerArchetypes.length){
-    const enemyRoamer = roamerArchetypes[0]; // pick the first enemy roamer
-    if(topArchetypes.includes(enemyRoamer)) return formatArchetype(enemyRoamer);
-  }
-
-  // Fallback: just pick the first among tied archetypes
-  return formatArchetype(topArchetypes[0]);
+  return topArchetypes.map(formatArchetype).join(" & ");
 }
 
-function computeTotals() {
-  const nameMap = {};
-  heroes.forEach(h => nameMap[norm(h.name)] = h);
+function formatArchetype(str){
+  return str.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+}
 
-  const enemyComp = determineComposition(enemyList, true); // true = forEnemy
-  const allyComp = determineComposition(allyList, false);   // false = for ally
+function computeTotals(){
+  const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
+
+  // ✅ Use the existing helper that works with name lists
+  const enemyComp = determineComposition(enemyList);
+  const allyComp = determineComposition(allyList);
 
   heroes.forEach(h => {
     h._details = { forward:[], reverse:[], total:0 };
@@ -571,56 +570,10 @@ setupAutocomplete(enemyInput);
 setupAutocomplete(bannedInput);
 // initial render
 render();
-
-  const heroes = [
-  {name: 'Hilda', role:'Fighter', archetype:'Tank', hardCounter:'Chip', softCounter:'', counters:[], total:0},
-  {name: 'Chou', role:'Fighter', archetype:'Tank', hardCounter:'', softCounter:'', counters:[], total:0},
-  {name: 'Gusion', role:'Assassin', archetype:'Burst', hardCounter:'', softCounter:'', counters:[], total:0}
-];
-
-const heroesTable = document.getElementById('heroesTable');
-
-function escapeHtml(s) {
-  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-function renderTable(list) {
-  heroesTable.innerHTML = '';
-  list.forEach(h => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHtml(h.name)}</td>
-      <td>${escapeHtml(h.role)}</td>
-      <td>${escapeHtml(h.archetype)}</td>
-      <td>${escapeHtml(h.hardCounter)}</td>
-      <td>${escapeHtml(h.softCounter)}</td>
-      <td>${escapeHtml(h.counters.join(', '))}</td>
-      <td>${h.total}</td>
-      <td></td>
-    `;
-    heroesTable.appendChild(tr);
-  });
-}
-
-renderTable(heroes);
-
-const tabs = document.querySelectorAll('.tab');
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    const type = tab.dataset.type;
-    let filtered = [];
-    if (type === 'hard') filtered = heroes.filter(h => h.hardCounter);
-    else if (type === 'soft') filtered = heroes.filter(h => h.softCounter);
-    else filtered = heroes;
-    renderTable(filtered);
-    tabs.forEach(t => t.classList.remove('active-glow'));
-    tab.classList.add('active-glow');
-  });
-});
-  
 </script>
 </body>
 </html>
+
 
 
 
