@@ -214,9 +214,8 @@ const archetypeTriangle = {
   'split push/cover': 'teamfight'   // split COUNTERS teamfight
 };
 
-function determineComposition(list){
+function determineComposition(list, focusList = null){
   const counts = {};
-
   list.forEach(name => {
     const h = heroes.find(x => norm(x.name) === norm(name));
     if(!h) return;
@@ -237,24 +236,35 @@ function determineComposition(list){
     Object.keys(counts).filter(k => counts[k] === maxCount)
   )];
 
-  // Format output
   if(topArchetypes.length === 1){
-    return formatArchetype(topArchetypes[0]);
+    return topArchetypes[0]; // just return the single archetype (lowercase)
   }
 
-  return topArchetypes.map(formatArchetype).join(" & ");
-}
+  // --- Tie breaker using focusList (roamers) ---
+  if(focusList && focusList.length){
+    for(const fName of focusList){
+      const fHero = heroes.find(h => norm(h.name) === norm(fName));
+      if(fHero && topArchetypes.includes((fHero.archetype||'').toLowerCase())){
+        return (fHero.archetype || '').toLowerCase();
+      }
+    }
+  }
 
-function formatArchetype(str){
-  return str.split(' ').map(w => w[0].toUpperCase() + w.slice(1)).join(' ');
+  // fallback: just pick first one
+  return topArchetypes[0];
 }
 
 function computeTotals(){
   const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
 
-  // ✅ Use the existing helper that works with name lists
-  const enemyComp = determineComposition(enemyList);
-  const allyComp = determineComposition(allyList);
+  // enemy roamers for tie-break
+const enemyRoamers = enemyList.filter(n => {
+  const h = heroes.find(x => norm(x.name) === norm(n));
+  return h && isRoamerHero(h);
+});
+
+const enemyComp = determineComposition(enemyList, enemyRoamers);
+const allyComp = determineComposition(allyList);
 
   heroes.forEach(h => {
     h._details = { forward:[], reverse:[], total:0 };
@@ -573,6 +583,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
