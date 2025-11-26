@@ -571,9 +571,57 @@ setupAutocomplete(enemyInput);
 setupAutocomplete(bannedInput);
 // initial render
 render();
+
+  const heroes = [
+  {name: 'Hilda', role:'Fighter', archetype:'Tank', hardCounter:'Chip', softCounter:'', counters:[], total:0},
+  {name: 'Chou', role:'Fighter', archetype:'Tank', hardCounter:'', softCounter:'', counters:[], total:0},
+  {name: 'Gusion', role:'Assassin', archetype:'Burst', hardCounter:'', softCounter:'', counters:[], total:0}
+];
+
+const heroesTable = document.getElementById('heroesTable');
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function renderTable(list) {
+  heroesTable.innerHTML = '';
+  list.forEach(h => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(h.name)}</td>
+      <td>${escapeHtml(h.role)}</td>
+      <td>${escapeHtml(h.archetype)}</td>
+      <td>${escapeHtml(h.hardCounter)}</td>
+      <td>${escapeHtml(h.softCounter)}</td>
+      <td>${escapeHtml(h.counters.join(', '))}</td>
+      <td>${h.total}</td>
+      <td></td>
+    `;
+    heroesTable.appendChild(tr);
+  });
+}
+
+renderTable(heroes);
+
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const type = tab.dataset.type;
+    let filtered = [];
+    if (type === 'hard') filtered = heroes.filter(h => h.hardCounter);
+    else if (type === 'soft') filtered = heroes.filter(h => h.softCounter);
+    else filtered = heroes;
+    renderTable(filtered);
+    tabs.forEach(t => t.classList.remove('active-glow'));
+    tab.classList.add('active-glow');
+  });
+});
+  
 </script>
 </body>
 </html>
+
 
 
 
