@@ -214,8 +214,10 @@ const archetypeTriangle = {
   'split push/cover': 'teamfight'   // split COUNTERS teamfight
 };
 
-function determineComposition(list, focusList = null){
+function determineComposition(list, forEnemy=false){
   const counts = {};
+  const roamerArchetypes = [];
+
   list.forEach(name => {
     const h = heroes.find(x => norm(x.name) === norm(name));
     if(!h) return;
@@ -224,47 +226,39 @@ function determineComposition(list, focusList = null){
     if(!a) return;
 
     counts[a] = (counts[a] || 0) + 1;
+
+    if(forEnemy && isRoamerHero(h)) roamerArchetypes.push(a);
   });
 
   const values = Object.values(counts);
   if(values.length === 0) return null;
 
   const maxCount = Math.max(...values);
-
-  // Get all archetypes tied for max count (unique)
-  const topArchetypes = [...new Set(
-    Object.keys(counts).filter(k => counts[k] === maxCount)
-  )];
+  const topArchetypes = Object.keys(counts).filter(k => counts[k] === maxCount);
 
   if(topArchetypes.length === 1){
-    return topArchetypes[0]; // just return the single archetype (lowercase)
+    return formatArchetype(topArchetypes[0]);
   }
 
-  // --- Tie breaker using focusList (roamers) ---
-  if(focusList && focusList.length){
-    for(const fName of focusList){
-      const fHero = heroes.find(h => norm(h.name) === norm(fName));
-      if(fHero && topArchetypes.includes((fHero.archetype||'').toLowerCase())){
-        return (fHero.archetype || '').toLowerCase();
-      }
-    }
+  // Tie-breaker rule
+  if(forEnemy && roamerArchetypes.length){
+    const enemyRoamer = roamerArchetypes[0]; // pick the first enemy roamer
+    if(topArchetypes.includes(enemyRoamer)) return formatArchetype(enemyRoamer);
   }
 
-  // fallback: just pick first one
-  return topArchetypes[0];
+  // Fallback: just pick the first among tied archetypes
+  return formatArchetype(topArchetypes[0]);
 }
 
-function computeTotals(){
-  const nameMap = {}; heroes.forEach(h=> nameMap[norm(h.name)] = h);
+function computeTotals() {
+  const nameMap = {};
+  heroes.forEach(h => nameMap[norm(h.name)] = h);
 
-  // enemy roamers for tie-break
-const enemyRoamers = enemyList.filter(n => {
-  const h = heroes.find(x => norm(x.name) === norm(n));
-  return h && isRoamerHero(h);
-});
+  const enemyComp = determineComposition(enemyList, true); // true = forEnemy
+  const allyComp = determineComposition(allyList, false);   // false = for ally
 
-const enemyComp = determineComposition(enemyList, enemyRoamers);
-const allyComp = determineComposition(allyList);
+  // now you can use enemyComp and allyComp as needed in your UI
+}
 
   heroes.forEach(h => {
     h._details = { forward:[], reverse:[], total:0 };
@@ -583,6 +577,7 @@ render();
 </script>
 </body>
 </html>
+
 
 
 
